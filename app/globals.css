@@ -1,0 +1,98 @@
+/* Almanac style, adapted from the owner's portfolio (puriyamirza.com/projects).
+   Every color, size and font lives in a variable here so later phases reuse them. */
+:root {
+  /* Color tokens (docs/PLAN.md, Design) */
+  --ink: #191a18;        /* ground */
+  --paper: #f6f3ee;      /* main text */
+  --stone: #a39b8c;      /* secondary text, control borders */
+  --brass: #a8845a;      /* reserved for sargassum data (and the focus ring) */
+  --frame-line: #5b5d58; /* hairlines only, never text */
+
+  /* Column field */
+  --line-a: 0.04;        /* resting line opacity */
+  --hi: 0.28;            /* pulse peak opacity */
+  --lines: 18;           /* number of columns; read by column-field.tsx */
+
+  /* Type. --font-cormorant and --font-jost come from next/font in layout.tsx. */
+  --display: var(--font-cormorant), "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --body: var(--font-jost), "Futura", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+
+  color-scheme: dark;
+}
+@media (max-width: 999px) { :root { --lines: 9; } }
+@media (max-width: 599px) { :root { --lines: 6; } }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { background: var(--ink); }
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--body);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.6;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; }
+:focus-visible { outline: 1px solid var(--brass); outline-offset: 4px; }
+
+/* Small uppercase label style */
+.cap { font-weight: 400; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
+
+/* Content column. Sits above the column lines (z-index 1 over 0). */
+.frame {
+  position: relative;
+  z-index: 1;
+  max-width: 1360px;
+  min-height: 100svh;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Background column lines, built by column-field.tsx */
+.lines { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.line { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(246, 243, 238, var(--line-a)); }
+.line i {
+  position: absolute; left: 0; top: 0; width: 1px; height: 70vh; min-height: 420px;
+  opacity: 0; will-change: opacity, transform;
+  background: linear-gradient(to bottom,
+    rgba(246, 243, 238, 0) 0%, rgba(246, 243, 238, calc(var(--hi) * 0.06)) 14%,
+    rgba(246, 243, 238, calc(var(--hi) * 0.28)) 28%, rgba(246, 243, 238, calc(var(--hi) * 0.72)) 40%,
+    rgba(246, 243, 238, var(--hi)) 50%, rgba(246, 243, 238, calc(var(--hi) * 0.72)) 60%,
+    rgba(246, 243, 238, calc(var(--hi) * 0.28)) 72%, rgba(246, 243, 238, calc(var(--hi) * 0.06)) 86%,
+    rgba(246, 243, 238, 0) 100%);
+}
+/* No pulse for people who ask for less motion (the script also checks this). */
+@media (prefers-reduced-motion: reduce) { .line i { display: none; } }
+
+/* Placeholder intro */
+.intro { flex: 1; padding-block: 72px 96px; margin-inline: 40px; }
+.intro h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: clamp(52px, 6.7vw, 96px);
+  line-height: 0.95;
+}
+.intro .lede { margin: 24px 0 0; max-width: 44ch; color: var(--stone); }
+
+/* Footer credit, on every page */
+.foot {
+  margin-inline: 40px;
+  padding-block: 28px 48px;
+  border-top: 1px solid rgba(246, 243, 238, 0.15);
+}
+.foot p { margin: 0; max-width: 72ch; color: var(--stone); font-size: 14px; line-height: 1.6; }
+
+@media (max-width: 999px) {
+  .intro, .foot { margin-inline: 0; }
+  .intro { padding-block: 48px 72px; }
+}
