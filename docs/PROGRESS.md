@@ -6,7 +6,7 @@ Status per phase from docs/PLAN.md. Statuses: not started · in progress · in r
 Status: in review (PR open on branch phase-0-setup)
 
 Done-when checklist:
-- [ ] Vercel preview deploys (the owner connects the repo to Vercel if it isn't already)
+- [x] Vercel preview deploys (Ready: https://sargasso-git-phase-0-setup-puriyas-projects-c08df284.vercel.app)
 - [x] pytest passes (`cd pipeline && uv run pytest`: 1 passed)
 - [x] Hook test passes (only the write aimed at .claude/ printed the "ask" JSON)
 - [x] Phase 0 check findings are in docs/DECISIONS.md (levels method still OPEN)
