@@ -36,10 +36,10 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Decision: No class breaks yet. Phase 1 can fetch and encode the AFAI index, but must not classify it until a primary source confirms the method.
 - Why: The plan forbids guessed thresholds, and the key papers couldn't be read from this environment. Findings so far:
   - ERDDAP metadata: AFAI is "in reflectance units" and saturates under sun glint, clouds or thick aerosols. It cites Hu et al. 2015, Remote Sensing of Environment 167:229–246, doi:10.1016/j.rse.2015.05.022. It doesn't say whether values are background-subtracted.
-  - Wang and Hu 2016, Remote Sensing of Environment 183:350–367, doi:10.1016/j.rse.2016.04.019 (UNVERIFIED, search snippets only): detection threshold 1.79e-4 (AFAI above background); AFAI -8.77e-4 = 0% coverage and 4.41e-2 = 100% coverage, with a linear mapping between them. These numbers are for MODIS. Note that ERDDAP's `actual_range` tops out at 0.004, far below the 100% value, so the ERDDAP values may be clipped. Check this in Phase 1.
+  - Wang and Hu 2016, Remote Sensing of Environment 183:350–367, doi:10.1016/j.rse.2016.04.019 (UNVERIFIED, search snippets only): detection threshold 1.79e-4 (AFAI above background); AFAI -8.77e-4 = 0% coverage and 4.41e-2 = 100% coverage, with a linear mapping between them. These numbers are for MODIS. The paper's record is at https://pure.lib.usf.edu/en/publications/mapping-and-quantifying-emsargassumem-distribution-and-coverage-i-2/, but it doesn't show these values. Note that ERDDAP's `actual_range` tops out at 0.004, far below the 100% value, so the ERDDAP values may be clipped (UNVERIFIED, because it rests on the unverified 100% value). Check this in Phase 1.
   - USF SaWS: describes a density product with a color scale of 0.00–0.10 ‰ (per mille), but gives no conversion steps. https://optics.marine.usf.edu/projects/saws.html
-  - NOAA SIR: risk classes low, warning, medium and high against a multi-day baseline. The 0.001 and 0.003 thresholds in docs/PLAN.md were not found on the page. https://cwcgom.aoml.noaa.gov/SIR/
-  - Blocked: doi.org, www.sciencedirect.com and repository.library.noaa.gov (DNS failure); sargcoop.org and digitalcommons.usf.edu (network proxy 403).
+  - NOAA SIR: risk classes low, warning, medium and high against a multi-day baseline. The page says "the algorithm examines these data in the surrounding 50–100 km" and gives no numeric thresholds or baseline length. The "50 km" and the 0.001 and 0.003 thresholds in docs/PLAN.md were not found on the page (confirmed by the data-scout and science-reviewer). Settle this before Phase 4. https://cwcgom.aoml.noaa.gov/SIR/
+  - Blocked: doi.org, www.sciencedirect.com, repository.library.noaa.gov and science.whoi.edu (DNS failure); sargcoop.org and digitalcommons.usf.edu (network proxy 403).
 - Next: The owner shares the Wang and Hu 2016 PDF, or allows one of the blocked hosts, so data-scout can read the primary source.
 - Source: https://cwcgom.aoml.noaa.gov/erddap/info/noaa_aoml_atlantic_oceanwatch_AFAI_7D/index.html
 
@@ -52,3 +52,13 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Decision: Note it; no change. Agent files load at session start, so `data-scout` wasn't available when the checks ran. The checks used general-purpose agents on the haiku model, with data-scout's instructions included word for word.
 - Why: General-purpose agents can use every tool, so the tool list wasn't enforced. One scout called a read-only documentation tool outside data-scout's list (it changed nothing) and left a scratch file at /tmp/scratch_afai_info.html. From the next session on, the real data-scout loads with its tool list.
 - Source: Scout reports, 2026-11-26.
+
+## 2026-11-26: injection-guard first run: config matches the owner's brief; one strict FAIL resolved
+- Decision: Accept. injection-guard pulled the owner's brief from the session transcript and diffed it against the commit. All 11 files match, except the Commands section of CLAUDE.md, which the owner asked to be filled in. The hook is executable. Check 3 (network destinations) failed on a strict reading: three hosts outside its list appear as text only (optics.marine.usf.edu and dm3.caricoos.org in docs, help.github.com in a template comment in .gitignore). The owner said to continue. The .gitignore comment was removed. optics.marine.usf.edu stays a validation link that code never fetches.
+- Why: Check 3 is meant for hosts that code, scripts or workflows contact. No code contacts these.
+- Source: injection-guard report, 2026-11-26.
+
+## 2026-11-26: Next.js config left at defaults
+- Decision: Remove `cacheComponents` and `partialPrefetching`, which create-next-app 16.4.6 turned on.
+- Why: The site is static (the browser reads files from public/data), so it doesn't need them. With them on, later pages could fail to build unless dynamic data sits inside Suspense, which adds complexity a beginner doesn't need.
+- Source: code-reviewer, 2026-11-26.

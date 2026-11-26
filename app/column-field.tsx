@@ -12,6 +12,10 @@ const BEAT_MS = 1000; // a new line starts glowing every second
 
 type Line = { glow: HTMLElement; start: number; y: number };
 
+// The lines are spaced across the element with class "frame" in layout.tsx.
+// If that class is renamed, rename it here too, or the lines won't appear.
+const FRAME_SELECTOR = ".frame";
+
 // S-shaped easing: starts and ends gently.
 const smooth = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
 
@@ -20,7 +24,7 @@ export default function ColumnField() {
 
   useEffect(() => {
     const layer = layerRef.current;
-    const frame = document.querySelector<HTMLElement>(".frame");
+    const frame = document.querySelector<HTMLElement>(FRAME_SELECTOR);
     if (!layer || !frame) return;
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -28,7 +32,9 @@ export default function ColumnField() {
     let bag: number[] = [];
     let last = -1;
     let raf = 0;
-    let stopped = false;
+    let glowHeight = 0; // height of one glow, measured once per build
+    let builtWidth = -1; // page width the lines were last built for
+    let stopped = false; // set when the component unmounts
 
     // Draw one line per column edge, spread across the content column.
     function build() {
@@ -48,12 +54,19 @@ export default function ColumnField() {
         layer.appendChild(line);
         lines.push({ glow, start: -1e9, y: 0 });
       }
+      glowHeight = lines.length ? lines[0].glow.offsetHeight : 0;
+      builtWidth = window.innerWidth;
+    }
+
+    // Phones fire "resize" when the address bar slides in and out while
+    // scrolling. Only the width matters for the lines, so ignore height changes.
+    function onResize() {
+      if (window.innerWidth !== builtWidth) build();
     }
 
     // Animate every glowing line for one frame; keep going while any is lit.
     function tick(now: number) {
       let anyLit = false;
-      const height = lines.length ? lines[0].glow.offsetHeight : 0;
       for (const line of lines) {
         const t = (now - line.start) / PULSE_MS;
         let opacity = 0;
@@ -62,7 +75,7 @@ export default function ColumnField() {
           anyLit = true;
         }
         line.glow.style.opacity = opacity.toFixed(3);
-        if (opacity > 0) line.glow.style.transform = `translateY(${Math.round(line.y - height / 2)}px)`;
+        if (opacity > 0) line.glow.style.transform = `translateY(${Math.round(line.y - glowHeight / 2)}px)`;
       }
       raf = anyLit ? requestAnimationFrame(tick) : 0;
     }
@@ -93,14 +106,17 @@ export default function ColumnField() {
     }
 
     build();
-    window.addEventListener("resize", build);
-    document.fonts?.ready.then(build); // fonts can shift the layout, so rebuild once they load
+    window.addEventListener("resize", onResize);
+    // Fonts can shift the layout, so rebuild once they load. If the component
+    // has unmounted by then, build() sees `stopped` and does nothing.
+    document.fonts?.ready.then(build);
     const timer = window.setInterval(beat, BEAT_MS);
 
+    // Cleanup when the component unmounts: stop the timer, listener and animation.
     return () => {
       stopped = true;
       window.clearInterval(timer);
-      window.removeEventListener("resize", build);
+      window.removeEventListener("resize", onResize);
       cancelAnimationFrame(raf);
     };
   }, []);

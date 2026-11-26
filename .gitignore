@@ -1,4 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Files git should never commit.
 
 # dependencies
 /node_modules
@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (secrets never go in the repo; a blank .env.example is fine)
 .env*
+!.env.example
+
+# personal Claude Code settings (shared settings live in .claude/settings.json)
+.claude/settings.local.json
 
 # vercel
 .vercel
@@ -44,5 +48,8 @@ next-env.d.ts
 pipeline/.venv/
 __pycache__/
 .pytest_cache/
+.ruff_cache/
+*.egg-info/
+pipeline/dist/
 # cached ERDDAP downloads during development
 pipeline/.cache/
