@@ -126,3 +126,19 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Decision: Moved it out without committing it, and noted it here. No other change.
 - Why: While searching for the method, data-scout saved USF's SaWS page (196 KB of HTML) as `.nonexistent` at the repo root, even though its instructions say read-only. Its Bash tool can write files, so "read-only" is only an instruction. The main session scanned the file and found no text aimed at an AI, no invisible characters and no encoded strings; its HTML comments are developer notes. The copy is kept in the session scratchpad for injection-guard.
 - Source: Main session, 2026-11-27.
+
+## 2026-11-27: ERDDAP's AFAI is clipped at both ends (closes the Phase 0 question)
+- Decision: Treat -0.002 as "-0.002 or less" and 0.004 as "0.004 or more". The encoding already does this: code 1 is the floor, code 255 the ceiling.
+- Why: In the 2026-11-26 frame (244,215 valid cells), 11.37% of values sit exactly at -0.002 and 0.25% exactly at 0.004, with nothing beyond. That pile-up means the producer clips the values. So the Wang and Hu 100% coverage value (4.41e-2, UNVERIFIED) can't be reached in this product, and any coverage conversion must allow for the ceiling.
+- Source: Frame 2026-11-26, checked locally (pipeline/.cache).
+
+## 2026-11-27: What happens when a frame is bad
+- Decision: A frame that can't be read, has no data at all, or has the wrong date counts as a failure for that server, and the mirror is tried next. If both fail, the job stops with an error and the site keeps the last good frame. It doesn't fall back to an older date, because that would hide the problem. The job doesn't reject frames that are mostly cloud: coverage varies a lot from week to week, and any cut-off would be a guess. Instead, latest.json records `data_fraction` (the share of pixels with data, 0.377 on 2026-11-26) so the map can show it.
+- Why: Failures stay loud (a red Action and an email to the owner) without ever showing a broken frame.
+- Source: code-reviewer, 2026-11-27.
+
+## 2026-11-27: More context from science-reviewer (all UNVERIFIED unless quoted)
+- SaWS weekly images are labelled by their last day: the README shows "3/10/2023 - 3/16/2023 - 7DAY FA_UNET_DENSITY" under "Composite DOY 075" (day 75 = March 16). That's a different product from ERDDAP's AFAI_7D, and the 16N, 60W sample didn't fit, so the ERDDAP window stays UNVERIFIED. https://optics.marine.usf.edu/projects/SaWS/README.pdf
+- Search snippets (not a primary source) say USF's operational products mask "coastal waters 0–30 km from the shore" because of shallow bottoms, suspended sediment and mixed land–water pixels, citing Hu et al. 2016 and Wang and Hu 2020. That matches the bright coastal edges in our frame. Confirm it before using it in the levels method.
+- For the Phase 3 validation: the SaWS page says "we have applied a wider color stretch after January 2025", so bulletin images from before and after that month aren't directly comparable. https://optics.marine.usf.edu/projects/SaWS.html
+- Source: science-reviewer, 2026-11-27.

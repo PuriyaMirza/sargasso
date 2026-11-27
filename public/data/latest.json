@@ -9,6 +9,7 @@
   "image": "daily/2026-11-26.png",
   "width": 1001,
   "height": 687,
+  "data_fraction": 0.3772,
   "bounds": {
     "west": -98.03,
     "south": -0.030004,

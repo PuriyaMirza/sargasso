@@ -30,7 +30,9 @@ def check_breaks(breaks):
 def classify(afai, breaks):
     """Level index per pixel: 0 none, 1 low, 2 moderate, 3 high, -1 no data.
 
-    A value equal to a break goes to the higher level.
+    A value equal to a break goes to the higher level. Not called by the daily
+    job yet: the browser colors pixels using `breaks_code` from latest.json.
+    It's here, tested, for the regional statistics in Phase 3.
     """
     check_breaks(breaks)
     levels = np.digitize(afai, breaks).astype(np.int8)

@@ -25,7 +25,11 @@ def encode(afai):
 
 
 def decode(codes):
-    """uint8 codes back to AFAI values (NaN where the code is 0)."""
+    """uint8 codes back to AFAI values (NaN where the code is 0).
+
+    The tests use this and load_png to check the round trip; the browser
+    decodes the same way using the numbers in latest.json.
+    """
     afai = AFAI_MIN + (codes.astype(np.float64) - FIRST_CODE) * STEP
     afai[codes == NODATA] = np.nan
     return afai

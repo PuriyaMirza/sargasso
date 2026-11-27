@@ -43,6 +43,25 @@ def test_falls_back_to_the_mirror_with_its_own_dataset_id():
     assert "noaa_aoml_ae10_d11a_85ab.nc" in net.urls[-1]
 
 
+def test_a_bad_frame_from_the_main_server_falls_back_to_the_mirror():
+    net = FakeNetwork()
+
+    def parse(data, when):
+        if len(net.urls) == 2:  # the main server's frame
+            raise ValueError("The frame has no data at all")
+        return "frame from the mirror"
+
+    server, _, frame = fetch.fetch_newest(get=net, parse=parse)
+    assert server["base_url"] == MIRROR
+    assert frame == "frame from the mirror"
+
+
+def test_notes_when_the_mirror_has_nothing_newer_after_a_failure(capsys):
+    known = datetime(2026, 11, 25, 12, tzinfo=timezone.utc)
+    assert fetch.fetch_newest(known_time=known, get=FakeNetwork(down=[PRIMARY])) is None
+    assert "main server failed" in capsys.readouterr().out
+
+
 def test_fails_loudly_when_every_server_fails():
     with pytest.raises(fetch.FetchError, match="Every server failed"):
         fetch.fetch_newest(get=FakeNetwork(down=[PRIMARY, MIRROR]))

@@ -38,16 +38,27 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
+def read_checked_frame(netcdf_bytes, when):
+    """Read a downloaded frame and make sure it's the one we asked for.
+
+    Raises ValueError for a broken, empty or mismatched frame, which makes
+    fetch_newest try the next server.
+    """
+    frame = grid.read_frame(netcdf_bytes)
+    if frame.time != when:
+        raise ValueError(f"Asked for the frame at {when}, got {frame.time}")
+    return frame
+
+
 def run(data_dir, cache_dir=None, force=False, get=None):
     """Do one update. Returns a short status string."""
-    known = None if force else output.latest_time(data_dir)
-    result = fetch_newest(known_time=known, cache_dir=cache_dir, get=get)
+    known = None if force else output.current_frame_time(data_dir)
+    result = fetch_newest(known_time=known, cache_dir=cache_dir, get=get, parse=read_checked_frame)
     if result is None:
         print("Already up to date: the site shows the newest frame.")
         return "up to date"
 
-    server, when, netcdf_bytes = result
-    frame = grid.read_frame(netcdf_bytes)
+    server, when, frame = result
     image, bounds = grid.to_mercator_rows(frame)
     codes = encode.encode(image)
     latest = output.write_outputs(data_dir, server, when, codes, bounds)

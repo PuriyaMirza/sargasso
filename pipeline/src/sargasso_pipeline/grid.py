@@ -36,7 +36,11 @@ class Bounds:
 
 def read_frame(netcdf_bytes):
     """Read a one-time-step AFAI frame from ERDDAP's NetCDF bytes and check its axes."""
-    with netCDF4.Dataset("frame.nc", memory=netcdf_bytes) as ds:
+    try:
+        ds = netCDF4.Dataset("frame.nc", memory=netcdf_bytes)
+    except OSError as err:
+        raise ValueError(f"Couldn't read the downloaded NetCDF file ({err})") from err
+    with ds:
         var = ds[sources.VARIABLE]
         if var.dimensions != ("time", "latitude", "longitude"):
             raise ValueError(f"Unexpected axis order {var.dimensions}")

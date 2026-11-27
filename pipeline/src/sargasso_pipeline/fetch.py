@@ -84,19 +84,26 @@ def download_frame(server, when, stride, cache_dir=None, get=http_get):
             return cache_file.read_bytes()
     data = get(griddap_url(server, "nc", frame_query(when, stride)))
     if cache_file is not None:
+        # Write to a temporary name, then rename, so a cut-off download
+        # never sits in the cache looking complete.
         cache_file.parent.mkdir(parents=True, exist_ok=True)
-        cache_file.write_bytes(data)
+        tmp = cache_file.with_name(cache_file.name + ".tmp")
+        tmp.write_bytes(data)
+        tmp.replace(cache_file)
     return data
 
 
-def fetch_newest(known_time=None, stride=sources.DAILY_STRIDE, cache_dir=None, get=None):
-    """Try each server in order and return (server, time, netcdf_bytes).
+def fetch_newest(known_time=None, stride=sources.DAILY_STRIDE, cache_dir=None, get=None, parse=None):
+    """Try each server in order and return (server, time, frame).
 
+    `parse(data, when)` turns the downloaded bytes into a checked frame. If it
+    raises ValueError (for example, an empty frame), the next server is tried.
     Returns None if the newest frame is not newer than `known_time`. Raises
     FetchError if every server fails, so the job stops loudly and the files
     already on the site stay as they are. Tests pass a fake `get`.
     """
     get = get or http_get
+    parse = parse or (lambda data, when: data)
     failures = []
     for server in sources.SERVERS:
         print(f"Asking {server['base_url']} for its newest 7-day frame")
@@ -104,11 +111,13 @@ def fetch_newest(known_time=None, stride=sources.DAILY_STRIDE, cache_dir=None, g
             when = latest_time(server, get=get)
             print(f"  newest frame: {when:{TIME_FORMAT}}")
             if known_time is not None and when <= known_time:
+                if failures:
+                    print("  note: the main server failed, and the mirror has nothing newer")
                 return None
             data = download_frame(server, when, stride, cache_dir=cache_dir, get=get)
             print(f"  downloaded {len(data):,} bytes")
-            return server, when, data
-        except FetchError as err:
+            return server, when, parse(data, when)
+        except (FetchError, ValueError) as err:
             print(f"  failed: {err}")
             failures.append(str(err))
     raise FetchError("Every server failed:\n  " + "\n  ".join(failures))
