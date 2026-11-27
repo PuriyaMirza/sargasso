@@ -67,3 +67,62 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Decision: At the owner's request, loosen the process rules: merging is allowed when the owner asks in chat; small plan deviations are allowed if logged here; well-maintained open-source dependencies may be added without asking (listed in the PR); small fixes to earlier phases are allowed; a growing task continues if it stays within the phase's goal; quick single-page lookups are allowed in the main session; the WebSearch footer is named as known boilerplate. All security rules stay as they were.
 - Why: Phase 0 and early Phase 1 stopped several times on process rules (merging, dependencies, the WebSearch footer) where the owner's answer was always to continue.
 - Source: Owner's request in chat, 2026-11-27.
+
+## 2026-11-27: Python libraries for the pipeline
+- Decision: numpy, netCDF4 and Pillow, chosen by the owner. They run only in the daily GitHub job; nothing reaches visitors' browsers.
+- Why: These are the standard tools for reading NOAA's NetCDF files and writing PNGs, so there's less code of our own to maintain. Measured install size: 114 MB on the runner.
+- Source: Owner's answer, 2026-11-27.
+
+## 2026-11-27: Storage gate: daily frames at stride 4 (about 6.7 km), not stride 3
+- Decision: Take every 4th data cell for the daily map, chosen by the owner. docs/PLAN.md is updated.
+- Why: Measured on the 2026-11-26 frame:
+
+  | Option | Daily file | Repo growth per year |
+  |---|---|---|
+  | Stride 3 PNG (5 km), as planned | 329,948 bytes | about 120 MB (fails both gates) |
+  | Stride 3, lossless WebP | 297,004 bytes | about 108 MB (fails growth) |
+  | Stride 3, WebP at half precision | 251,194 bytes | about 92 MB (thin margin) |
+  | **Stride 4 PNG (6.7 km)** | **191,817 bytes** | **about 70 MB** |
+
+  Deleting frames after 30 days doesn't shrink git history, so growth is 365 frames a year. File size rises on less cloudy weeks: 38.5% of pixels had data on this frame. The NetCDF download at stride 4 is 2,557,104 bytes.
+- Source: Local measurements, 2026-11-27; owner's answer.
+
+## 2026-11-27: Data PNG encoding
+- Decision: PNG value 0 = no data (NaN: cloud, land, outside the product's coverage). Values 1–255 = AFAI scaled linearly from -0.002 to 0.004, clipped at both ends. One step = 2.36e-5 AFAI. The range is the dataset's own `actual_range`, not a threshold. latest.json carries the scale so the browser can decode it.
+- Why: 8-bit grayscale PNGs are small, lossless and easy for the browser to color with a lookup table. The round trip is tested to within half a step.
+- Source: https://cwcgom.aoml.noaa.gov/erddap/info/noaa_aoml_atlantic_oceanwatch_AFAI_7D/index.csv (actual_range)
+
+## 2026-11-27: Web Mercator resampling
+- Decision: Each output row copies the nearest data row (no blending). The number of rows is chosen so each output row is no taller than the shortest data row in Mercator, which sits at the equator, so no data row is ever skipped. At stride 4, 634 data rows become 687 image rows. Corners are the outer cell edges (exact values in latest.json).
+- Why: MapLibre stretches an image evenly between its corners in Web Mercator. Copying the nearest row keeps no-data pixels as no data and never invents values. The largest shift this causes is half an image row, about 3 km.
+- Source: pipeline/src/sargasso_pipeline/grid.py and pipeline/tests/test_grid.py.
+
+## 2026-11-27: What the 7-day timestamp means: UNVERIFIED
+- Decision: Label frames "7-day composite dated YYYY-MM-DD", using ERDDAP's timestamp, without claiming which seven days it covers.
+- Why: The metadata says only "7-day cumulative" and "Reference Time". A small sample (16N, 60W) didn't match "that day plus the six before" as a mean or a max, so the window is unknown.
+- Source: https://cwcgom.aoml.noaa.gov/erddap/info/noaa_aoml_atlantic_oceanwatch_AFAI_7D/index.csv ; https://optics.marine.usf.edu/projects/SaWS/README.pdf
+
+## 2026-11-27: Daily schedule
+- Decision: Run at 01:23 and 13:23 UTC, plus a manual "Run workflow" button. A run with no new frame changes nothing.
+- Why: One observation: the 2026-11-26 frame appeared between about 22:10 UTC on Nov 26 and 00:21 UTC on Nov 27. The midday run is a backup. Revisit after a week of run logs; each run prints the newest frame's time.
+- Source: Phase 0 scout (22:10 UTC) and the first pipeline run (00:21 UTC).
+
+## 2026-11-27: Coverage and coastal edges in the real data
+- Decision: Note for the levels method and for Phase 2's no-data hatch.
+- Why: USF's product covers only a few rectangular boxes within 0–38N, 98–38W; everything else is NaN. Five inland points (Florida, the Yucatán, Puerto Rico, Cuba, Venezuela) are NaN, so land is already no data. Values are high right along many coastlines (Cuba, Hispaniola, the Yucatán, Venezuela). That's likely shallow seafloor or murky water rather than sargassum, so the levels method needs to deal with near-shore pixels.
+- Source: Frame 2026-11-26, checked locally.
+
+## 2026-11-27: Levels method: still OPEN after a second search
+- Decision: Keep `LEVEL_BREAKS = None`. latest.json says the levels are pending, and the map will show the continuous relative index until a source is confirmed.
+- Why: The only primary source reached was USF's SaWS README. It says the most useful image is "FA_UNET_DENSITY", a "Sargassum density map for the past 7 days" with a "% cover" scale from 0.00 to over 0.4, but it gives no class breaks, and that's a different product from ERDDAP's AFAI. Wang and Hu 2016 remains unreachable. Newly blocked: api.semanticscholar.org and pure.lib.usf.edu (proxy 403); www.mdpi.com and arxiv.org (DNS); three PDFs on optics.marine.usf.edu (HTTP 401).
+- Source: https://optics.marine.usf.edu/projects/SaWS/README.pdf (pages 2–3)
+
+## 2026-11-27: GitHub Action pinned to a commit; no third-party setup actions
+- Decision: The only action used is actions/checkout, pinned to v7.0.1 (commit 3d3c42e5aac5ba805825da76410c181273ba90b1, released 2026-07-17). uv is installed from PyPI at a pinned version (`pipx install uv==0.11.32`). Permissions are empty by default, and `contents: write` is granted only to the data job.
+- Why: Fewer outside actions mean less supply-chain risk (pinned SHAs and minimal permissions, as the security rules ask).
+- Source: `git ls-remote --tags https://github.com/actions/checkout`
+
+## 2026-11-27: A data-scout saved a web page into the repo
+- Decision: Moved it out without committing it, and noted it here. No other change.
+- Why: While searching for the method, data-scout saved USF's SaWS page (196 KB of HTML) as `.nonexistent` at the repo root, even though its instructions say read-only. Its Bash tool can write files, so "read-only" is only an instruction. The main session scanned the file and found no text aimed at an AI, no invisible characters and no encoded strings; its HTML comments are developer notes. The copy is kept in the session scratchpad for injection-guard.
+- Source: Main session, 2026-11-27.

@@ -3,7 +3,7 @@
 Status per phase from docs/PLAN.md. Statuses: not started · in progress · in review (PR open) · done (merged).
 
 ## Phase 0: setup (target Nov 30)
-Status: in review (PR open on branch phase-0-setup)
+Status: done (PR #1 merged 2026-11-27)
 
 Done-when checklist:
 - [x] Vercel preview deploys (Ready: https://sargasso-git-phase-0-setup-puriyas-projects-c08df284.vercel.app)
@@ -28,7 +28,15 @@ Done-when checklist:
 | ui-reviewer | Touch targets, focus ring, map, legend, data date | N/A | Nothing interactive yet |
 
 ## Phase 1: data pipeline (target Dec 7)
-Status: not started
+Status: in progress (branch phase-1-data-pipeline)
+
+Done-when checklist:
+- [x] One real frame committed (public/data/daily/2026-11-26.png, 191,817 bytes)
+- [x] pytest covers axis order, Mercator resampling, the encoding round trip and class breaks on synthetic data (32 tests)
+- [ ] geo-qa passes
+- [x] Measured file sizes in DECISIONS.md
+- [x] Storage gate: stride 3 failed (330 KB); the owner chose stride 4 (192 KB, about 70 MB a year)
+- Open: the levels method isn't confirmed, so `LEVEL_BREAKS` stays None
 
 ## Phase 2: map MVP (target Dec 14)
 Status: not started
