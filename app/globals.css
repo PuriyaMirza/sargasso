@@ -153,7 +153,8 @@ a { color: inherit; }
 .map-wrap .maplibregl-ctrl-group button:focus:focus-visible,
 .map-wrap .maplibregl-ctrl-attrib-button:focus,
 .map-wrap .maplibregl-ctrl-attrib-button:focus:focus-visible { box-shadow: none; }
-.map-wrap .maplibregl-ctrl button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; }
+.map-wrap .maplibregl-ctrl button:focus-visible,
+.map-wrap .maplibregl-ctrl-attrib-button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; }
 .map-wrap .maplibregl-ctrl.maplibregl-ctrl-attrib,
 .map-wrap .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact-show {
   background: rgba(25, 26, 24, 0.9); color: var(--stone); font-size: 11px; border-radius: 0;

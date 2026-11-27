@@ -57,9 +57,21 @@ Status: in progress (branch phase-2-map-mvp)
 
 Done-when checklist:
 - [ ] Preview works on a phone at 390 px (the owner checks)
-- [ ] Frame lines up with coastlines at Puerto Rico, Barbados and the Yucatán (geo-qa screenshot check)
-- [ ] ui-reviewer passes
+- [x] Frame lines up with coastlines at Puerto Rico, Barbados and the Yucatán (geo-qa screenshots; now also an automated test)
+- [x] ui-reviewer passes (after fixes)
 - [x] First load under 1 MB excluding map frames (about 710 KB compressed)
+
+/phase-check, 2026-11-27 (final):
+
+| Reviewer | Check | Result | Fix |
+|---|---|---|---|
+| injection-guard | All six checks (config, AI-aimed text, hosts, data flow, workflows, reports) | PASS | None. It noted two install-script packages, so mapshaper now runs on demand via npx |
+| code-reviewer | Errors, effects, accessibility, lint | PASS (after fixes) | Errors are logged and only shown before the frame loads; taps wait for the frame; marker cleanup; aria-atomic readout with a keyboard hint; lint ignores the copied worker |
+| geo-qa | Axis order, Mercator, corners, encoding | PASS | None |
+| geo-qa | Tests for land alignment | PASS (first run FAIL) | Added pipeline/tests/test_alignment.py |
+| science-reviewer | No guessed thresholds; no tons or forecast; data date; coastal note | PASS (wording fixes) | No 0–100 number; "A relative index of floating sargassum"; hedged coastal and coverage notes |
+| ui-reviewer | Overflow, contrast, date and footer, reduced motion, load size, readout | PASS | None |
+| ui-reviewer | Touch targets and focus style | PASS (first runs FAIL) | 44 px credits control; brass focus ring on every map control, no MapLibre glow |
 
 ## Phase 3: time and history (target Jan 4)
 Status: not started
