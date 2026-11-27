@@ -42,13 +42,17 @@ export default function SargassumMap({ latest, onReading, onStatus }: Props) {
     let map: MapLibreMap | undefined;
     let marker: Marker | undefined;
     let frameUrl: string | undefined;
-    let codes: Uint8Array | undefined;
-    let stopped = false;
+    let codes: Uint8Array | undefined; // the frame's raw values, once loaded
+    let frameReady = false;
+    let stopped = false; // set when the component unmounts
     const { west, south, east, north } = latest.bounds;
 
     async function start() {
       const maplibre = await import("maplibre-gl");
       if (stopped || !containerRef.current) return;
+      // Where MapLibre finds its web worker: scripts/copy-maplibre-worker.mjs
+      // puts it there before each build. This is a global setting, so setting
+      // it again on a later mount is harmless.
       maplibre.setWorkerUrl(`/maplibre/maplibre-gl-worker.mjs?v=${maplibre.getVersion()}`);
 
       map = new maplibre.Map({
@@ -96,7 +100,8 @@ export default function SargassumMap({ latest, onReading, onStatus }: Props) {
         try {
           codes = await loadCodes(`/data/${latest.image}`, latest.width, latest.height);
           frameUrl = await coloredImageUrl(codes, latest);
-        } catch {
+        } catch (err) {
+          console.error("Couldn't load this week's frame:", err);
           if (!stopped) callbacks.current.onStatus("error");
           return;
         }
@@ -116,11 +121,15 @@ export default function SargassumMap({ latest, onReading, onStatus }: Props) {
           },
           "land",
         );
+        frameReady = true;
         callbacks.current.onStatus("ready");
       });
 
-      map.on("error", () => {
-        if (!stopped) callbacks.current.onStatus("error");
+      // Log every map error. Only show the "couldn't load" message if the
+      // frame isn't up yet; a later hiccup shouldn't hide a working map.
+      map.on("error", (event) => {
+        console.error("Map error:", event.error ?? event);
+        if (!stopped && !frameReady) callbacks.current.onStatus("error");
       });
 
       // A tap (or click) gives a reading for that spot.
@@ -138,23 +147,26 @@ export default function SargassumMap({ latest, onReading, onStatus }: Props) {
     }
 
     function read(lng: number, lat: number, point: { x: number; y: number }) {
-      if (!map || !marker) return;
+      // Ignore taps until the frame has loaded, so we never say "no data" by mistake.
+      if (!map || !marker || !codes || !frameReady) return;
       marker.setLngLat([lng, lat]).addTo(map);
       const onLand = map.getLayer("land") && map.queryRenderedFeatures([point.x, point.y], { layers: ["land"] }).length > 0;
       const pixel = pixelAt(latest, lng, lat);
       let reading: Reading;
       if (onLand) reading = { kind: "land", lng, lat };
-      else if (!pixel || !codes || codes[pixel.y * latest.width + pixel.x] === 0) reading = { kind: "nodata", lng, lat };
+      else if (!pixel || codes[pixel.y * latest.width + pixel.x] === 0) reading = { kind: "nodata", lng, lat };
       else reading = { kind: "value", lng, lat, code: codes[pixel.y * latest.width + pixel.x] };
       callbacks.current.onReading(reading);
     }
 
-    start().catch(() => {
+    start().catch((err) => {
+      console.error("The map couldn't start:", err); // e.g. no WebGL
       if (!stopped) callbacks.current.onStatus("error");
     });
 
     return () => {
       stopped = true;
+      marker?.remove();
       map?.remove();
       if (frameUrl) URL.revokeObjectURL(frameUrl);
     };

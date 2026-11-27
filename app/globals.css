@@ -148,13 +148,22 @@ a { color: inherit; }
 .map-wrap .maplibregl-ctrl-group button { width: 44px; height: 44px; }
 .map-wrap .maplibregl-ctrl-group button + button { border-top: 1px solid var(--frame-line); }
 .map-wrap .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
-.map-wrap .maplibregl-ctrl-group button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; box-shadow: none; }
+/* Our brass focus ring replaces MapLibre's blue glow on every map button. */
+.map-wrap .maplibregl-ctrl-group button:focus,
+.map-wrap .maplibregl-ctrl-group button:focus:focus-visible,
+.map-wrap .maplibregl-ctrl-attrib-button:focus,
+.map-wrap .maplibregl-ctrl-attrib-button:focus:focus-visible { box-shadow: none; }
+.map-wrap .maplibregl-ctrl button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; }
 .map-wrap .maplibregl-ctrl.maplibregl-ctrl-attrib,
 .map-wrap .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact-show {
   background: rgba(25, 26, 24, 0.9); color: var(--stone); font-size: 11px; border-radius: 0;
 }
 .map-wrap .maplibregl-ctrl-attrib a { color: var(--stone); }
-.map-wrap .maplibregl-ctrl-attrib-button { filter: invert(1); background-color: transparent; }
+.map-wrap .maplibregl-ctrl-attrib-button {
+  width: 44px; height: 44px; filter: invert(1); background-color: transparent; background-position: center;
+}
+.map-wrap .maplibregl-ctrl-attrib.maplibregl-compact { min-height: 44px; }
+.map-wrap .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-right: 48px; }
 
 @media (min-width: 1000px) {
   .now {

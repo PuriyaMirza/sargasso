@@ -40,7 +40,7 @@ export default function NowView({ latest }: { latest: Latest }) {
           </p>
         </div>
 
-        <div className="readout" aria-live="polite">
+        <div className="readout" aria-live="polite" aria-atomic="true">
           <p className="cap label">Reading</p>
           <ReadingText reading={reading} latest={latest} />
         </div>
@@ -51,9 +51,13 @@ export default function NowView({ latest }: { latest: Latest }) {
             published method for them is confirmed.
           </p>
           <p>
-            Bright edges right along coastlines are often shallow water or sediment, not sargassum.
+            Bright pixels near coastlines may be shallow seafloor, sediment or mixed land–water
+            pixels rather than sargassum; this map can’t yet tell them apart.
           </p>
-          <p>{Math.round(latest.data_fraction * 100)}% of the map area has a reading this week.</p>
+          <p>
+            {Math.round(latest.data_fraction * 100)}% of the frame has data in this composite; the
+            rest is cloud, land or outside coverage.
+          </p>
         </div>
       </section>
     </>
@@ -61,7 +65,14 @@ export default function NowView({ latest }: { latest: Latest }) {
 }
 
 function ReadingText({ reading, latest }: { reading: Reading | null; latest: Latest }) {
-  if (!reading) return <p className="readout-hint">Tap the map for a reading.</p>;
+  if (!reading) {
+    return (
+      <p className="readout-hint">
+        Tap the map for a reading. With a keyboard, focus the map and press Enter or Space to read
+        its centre.
+      </p>
+    );
+  }
 
   const place = <p className="coords">{formatLatLng(reading.lat, reading.lng)}</p>;
   if (reading.kind === "land") {
@@ -71,12 +82,15 @@ function ReadingText({ reading, latest }: { reading: Reading | null; latest: Lat
     return <>{place}<p>No data here this week (cloud, or outside the product’s coverage).</p></>;
   }
 
+  // No number on a 0–100 scale: it would read like percent cover, and the
+  // bottom of the scale isn't "no sargassum". The marker shows where the
+  // reading sits on the legend, and the AFAI value is given as is.
   const enc = latest.encoding;
   const position = scalePosition(reading.code, enc) ?? 0;
   const afai = decode(reading.code, enc) ?? 0;
-  let words = `${Math.round(position * 100)} on this map’s 0–100 scale`;
-  if (reading.code === enc.last_code) words = "At the top of the scale";
-  if (reading.code === enc.first_code) words = "At the bottom of the scale";
+  let where = "marked on the scale above";
+  if (reading.code === enc.last_code) where = "at the top of the scale";
+  if (reading.code === enc.first_code) where = "at the bottom of the scale";
 
   return (
     <>
@@ -84,11 +98,12 @@ function ReadingText({ reading, latest }: { reading: Reading | null; latest: Lat
       <div className="meter" style={{ background: legendGradient() }} aria-hidden="true">
         <span style={{ left: `${position * 100}%` }} />
       </div>
-      <p>Relative level: {words}</p>
+      <p>Relative level: {where}</p>
       <p className="afai">
         AFAI index {afai.toFixed(4)}
         {reading.code === enc.last_code ? " or more" : ""}
-        {reading.code === enc.first_code ? " or less" : ""}. A relative index, not tons and not a forecast.
+        {reading.code === enc.first_code ? " or less" : ""}. A relative index: not tons, percent
+        cover or a forecast.
       </p>
     </>
   );

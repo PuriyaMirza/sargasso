@@ -166,3 +166,18 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 ## 2026-11-27: Phase 2 first-load size
 - Decision: Accept. Measured compressed transfer on the production build (`next start`): page, scripts, CSS and fonts 375 KB; land 48 KB; MapLibre worker 148 KB; about 710 KB in all, excluding the 187 KB map frame. Under the 1 MB budget. Vercel serves Brotli, which is usually smaller still.
 - Source: Playwright and curl against `next start`, 2026-11-27.
+
+## 2026-11-27: mapshaper runs on demand, not as a dependency
+- Decision: Remove mapshaper from devDependencies; `npm run land` runs the pinned version through `npx --yes mapshaper@0.7.101`.
+- Why: mapshaper pulls in better-sqlite3 and msgpackr-extract, which run install scripts (native builds, possibly downloading prebuilt files from GitHub). As a dependency, those would run on every `npm install` and every Vercel build, for a tool we use once. The lockfile now has no packages with install scripts.
+- Source: injection-guard noted two install-script packages; `npm ls better-sqlite3` traced them to mapshaper.
+
+## 2026-11-27: Wording that doesn't overclaim
+- Decision: The header says "A relative index of floating sargassum…" instead of "Where sargassum is this week". The readout shows the marker on the color scale and the AFAI value, with no 0–100 number. The coastal note says bright near-shore pixels "may be" shallow seafloor, sediment or mixed land–water pixels, and that "this map can't yet tell them apart". The coverage line says "N% of the frame has data in this composite; the rest is cloud, land or outside coverage."
+- Why: A 0–100 number reads like percent cover, and the bottom of the scale isn't "no sargassum". The 7-day window is unverified. The coastal artifact is likely but not confirmed from a primary source. data_fraction counts frame pixels, not sargassum.
+- Source: science-reviewer, 2026-11-27.
+
+## 2026-11-27: Alignment test against the land layer
+- Decision: pipeline/tests/test_alignment.py draws land.geojson onto the committed PNG's grid and checks that (a) pixels fully inside land almost never hold data (at most 0.5%), and (b) shifting the frame 3 pixels in any direction puts clearly more data on land. The daily job runs it before each update.
+- Why: It protects the Puerto Rico, Barbados and Yucatán alignment check automatically. The 249 "data on land" pixels found on 2026-11-26 (0.16%) are lakes and reservoirs that Natural Earth's land layer doesn't cut out: Okeechobee, Pontchartrain, Kentucky Lake, Kerr Lake, Izabal, Guri and Brokopondo. Every shift, even one pixel, makes the overlap worse, so the frame sits within a pixel of the coastline.
+- Source: geo-qa, 2026-11-27.

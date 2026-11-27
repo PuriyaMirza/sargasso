@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test lib/*.test.ts",
-    "land": "mapshaper node_modules/world-atlas/land-10m.json -clip bbox=-100,-2,-36,40 -simplify 30% keep-shapes -o public/data/land.geojson format=geojson precision=0.001"
+    "land": "npx --yes mapshaper@0.7.101 node_modules/world-atlas/land-10m.json -clip bbox=-100,-2,-36,40 -simplify 30% keep-shapes -o public/data/land.geojson format=geojson precision=0.001"
   },
   "dependencies": {
     "maplibre-gl": "6.17.0",
@@ -24,7 +24,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
-    "mapshaper": "0.7.101",
     "typescript": "^5",
     "world-atlas": "2.0.2"
   }
