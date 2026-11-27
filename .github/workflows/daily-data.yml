@@ -1,0 +1,55 @@
+# Daily data update: fetch the newest 7-day sargassum frame from NOAA ERDDAP,
+# write public/data/, and commit it. Vercel rebuilds the site on each commit.
+# If every server fails, the pipeline exits with an error: this run turns red,
+# GitHub emails the owner, and the site keeps the last good frame.
+name: Daily data
+
+on:
+  schedule:
+    # New frames appeared around 22:10-00:20 UTC (one observation; see
+    # docs/DECISIONS.md). Run after that, plus a midday backup run.
+    - cron: "23 1 * * *"
+    - cron: "23 13 * * *"
+  workflow_dispatch: {} # adds a "Run workflow" button on the Actions tab
+
+# No permissions by default; the one job below gets only what it needs.
+permissions: {}
+
+# Never run two updates at once.
+concurrency:
+  group: daily-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write # to commit public/data
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv (pinned version, from PyPI)
+        run: pipx install uv==0.11.32
+
+      - name: Run the pipeline tests
+        working-directory: pipeline
+        run: uv run --locked pytest -q
+
+      - name: Fetch the newest frame and write public/data
+        working-directory: pipeline
+        run: uv run --locked sargasso-pipeline
+
+      - name: Commit new data, if any
+        run: |
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "No new data to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Data: newest 7-day frame"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
