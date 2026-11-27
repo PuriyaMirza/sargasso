@@ -142,3 +142,27 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Search snippets (not a primary source) say USF's operational products mask "coastal waters 0–30 km from the shore" because of shallow bottoms, suspended sediment and mixed land–water pixels, citing Hu et al. 2016 and Wang and Hu 2020. That matches the bright coastal edges in our frame. Confirm it before using it in the levels method.
 - For the Phase 3 validation: the SaWS page says "we have applied a wider color stretch after January 2025", so bulletin images from before and after that month aren't directly comparable. https://optics.marine.usf.edu/projects/SaWS.html
 - Source: science-reviewer, 2026-11-27.
+
+## 2026-11-27: Land layer from Natural Earth 1:10m, clipped once
+- Decision: `npm run land` makes public/data/land.geojson from the world-atlas 2.0.2 package (Natural Earth 1:10m land). It clips to 100–36W, 2S–40N (a little beyond the data, so panning edges still show land), simplifies to 30% of the points (keeping every island), and rounds to 0.001° (about 110 m). Result: 153,570 bytes, or 48,456 compressed.
+- Why: The full-detail clip is 498 KB. At 30%, coastline detail stays far finer than the 6.7 km data pixels, and Barbados, Grand Cayman and Puerto Rico all survive. world-atlas and mapshaper are dev-only tools; nothing from them ships except the GeoJSON.
+- Source: https://github.com/topojson/world-atlas (Natural Earth, public domain)
+
+## 2026-11-27: MapLibre 6.17.0, with its worker served from /maplibre/
+- Decision: Pin maplibre-gl 6.17.0 (released 2026-11-07; newer versions came out within the last two weeks). Before each build, `scripts/copy-maplibre-worker.mjs` copies MapLibre's web worker into public/maplibre/ (gitignored), and the map calls `setWorkerUrl()` to point at it. The map uses no outside tiles or fonts: just a background, the frame and the land layer, so it contacts no new hosts.
+- Why: MapLibre 6 looks for its worker next to its own file, and that file moves when Next.js bundles it.
+- Source: node_modules/maplibre-gl/dist (the worker URL logic in maplibre-gl.mjs)
+
+## 2026-11-27: How the map colors the frame
+- Decision: The browser reads the PNG's exact values (color management off), colors them with a 256-entry lookup table and hands MapLibre the colored copy. The scale is a continuous stretch over the data's own range, -0.002 to 0.004: near ink up to 30%, then dim stone (55%), brass (80%) and bright gold (100%). No data is transparent, so a faint paper hatch on the map's ground shows through; land draws on top of everything except the coastline.
+- Why: Calm ocean should look like the ink ground (docs/PLAN.md), and only higher values should stand out. Each stop is lighter than the one before (tested), so the scale reads in grayscale. These are display stops, not level classes; the legend says the levels are pending.
+- Source: lib/frame.ts, app/sargassum-map.tsx
+
+## 2026-11-27: Reading the data at build time; map view in the address
+- Decision: The page reads latest.json when Vercel builds it, so the data date is in the HTML before any JavaScript runs. The daily data commit triggers a rebuild. The map keeps its view in the address (`#map=zoom/lat/lng`), so views can be shared and screenshotted.
+- Why: Faster first paint and a date that's always visible. MapLibre's built-in hash option needs no extra code.
+- Source: app/page.tsx
+
+## 2026-11-27: Phase 2 first-load size
+- Decision: Accept. Measured compressed transfer on the production build (`next start`): page, scripts, CSS and fonts 375 KB; land 48 KB; MapLibre worker 148 KB; about 710 KB in all, excluding the 187 KB map frame. Under the 1 MB budget. Vercel serves Brotli, which is usually smaller still.
+- Source: Playwright and curl against `next start`, 2026-11-27.

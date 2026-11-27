@@ -3,12 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-maplibre-worker.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-maplibre-worker.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test lib/*.test.ts",
+    "land": "mapshaper node_modules/world-atlas/land-10m.json -clip bbox=-100,-2,-36,40 -simplify 30% keep-shapes -o public/data/land.geojson format=geojson precision=0.001"
   },
   "dependencies": {
+    "maplibre-gl": "6.17.0",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"
@@ -19,6 +24,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
-    "typescript": "^5"
+    "mapshaper": "0.7.101",
+    "typescript": "^5",
+    "world-atlas": "2.0.2"
   }
 }

@@ -28,7 +28,7 @@ Done-when checklist:
 | ui-reviewer | Touch targets, focus ring, map, legend, data date | N/A | Nothing interactive yet |
 
 ## Phase 1: data pipeline (target Dec 7)
-Status: in review (PR open on branch phase-1-data-pipeline)
+Status: done (PR #2 merged 2026-11-27)
 
 Done-when checklist:
 - [x] One real frame committed (public/data/daily/2026-11-26.png, 191,817 bytes)
@@ -53,7 +53,13 @@ Done-when checklist:
 | science-reviewer | No tons, density or forecast; 7-day label | PASS | Recorded the SaWS labelling and the coastal-mask clues as UNVERIFIED |
 
 ## Phase 2: map MVP (target Dec 14)
-Status: not started
+Status: in progress (branch phase-2-map-mvp)
+
+Done-when checklist:
+- [ ] Preview works on a phone at 390 px (the owner checks)
+- [ ] Frame lines up with coastlines at Puerto Rico, Barbados and the Yucatán (geo-qa screenshot check)
+- [ ] ui-reviewer passes
+- [x] First load under 1 MB excluding map frames (about 710 KB compressed)
 
 ## Phase 3: time and history (target Jan 4)
 Status: not started
