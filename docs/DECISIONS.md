@@ -62,3 +62,8 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Decision: Remove `cacheComponents` and `partialPrefetching`, which create-next-app 16.4.6 turned on.
 - Why: The site is static (the browser reads files from public/data), so it doesn't need them. With them on, later pages could fail to build unless dynamic data sits inside Suspense, which adds complexity a beginner doesn't need.
 - Source: code-reviewer, 2026-11-26.
+
+## 2026-11-27: CLAUDE.md: more room for judgment, same security rules
+- Decision: At the owner's request, loosen the process rules: merging is allowed when the owner asks in chat; small plan deviations are allowed if logged here; well-maintained open-source dependencies may be added without asking (listed in the PR); small fixes to earlier phases are allowed; a growing task continues if it stays within the phase's goal; quick single-page lookups are allowed in the main session; the WebSearch footer is named as known boilerplate. All security rules stay as they were.
+- Why: Phase 0 and early Phase 1 stopped several times on process rules (merging, dependencies, the WebSearch footer) where the owner's answer was always to continue.
+- Source: Owner's request in chat, 2026-11-27.
