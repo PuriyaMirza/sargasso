@@ -16,7 +16,7 @@ A daily GitHub Actions job (Python) fetches the newest 7-day AFAI frame, classif
 
 Files under public/data/:
 - latest.json: data date, dataset ID, bounds, class breaks, encoding scale, per-region stats
-- daily/YYYY-MM-DD.png: 7-day composite at stride 3 (about 5 km), rolling 30 days
+- daily/YYYY-MM-DD.png: 7-day composite at stride 4 (about 6.7 km; stride 3 failed the storage gate, see DECISIONS.md), rolling 30 days
 - monthly/YYYY-MM.png: monthly composite at stride 6 (about 10 km), Jun 2016 to now
 - series.csv: date, region, index
 - land.geojson: Natural Earth land clipped to the region

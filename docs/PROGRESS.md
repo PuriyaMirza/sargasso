@@ -3,7 +3,7 @@
 Status per phase from docs/PLAN.md. Statuses: not started · in progress · in review (PR open) · done (merged).
 
 ## Phase 0: setup (target Nov 30)
-Status: in review (PR open on branch phase-0-setup)
+Status: done (PR #1 merged 2026-11-27)
 
 Done-when checklist:
 - [x] Vercel preview deploys (Ready: https://sargasso-git-phase-0-setup-puriyas-projects-c08df284.vercel.app)
@@ -28,7 +28,29 @@ Done-when checklist:
 | ui-reviewer | Touch targets, focus ring, map, legend, data date | N/A | Nothing interactive yet |
 
 ## Phase 1: data pipeline (target Dec 7)
-Status: not started
+Status: in review (PR open on branch phase-1-data-pipeline)
+
+Done-when checklist:
+- [x] One real frame committed (public/data/daily/2026-11-26.png, 191,817 bytes)
+- [x] pytest covers axis order, Mercator resampling, the encoding round trip and class breaks on synthetic data (36 tests)
+- [x] geo-qa passes (every one of 244,215 valid cells lands on the right PNG pixel; worst position error 3.3 km)
+- [x] Measured file sizes in DECISIONS.md
+- [x] Storage gate: stride 3 failed (330 KB); the owner chose stride 4 (192 KB, about 70 MB a year)
+- Open: the levels method isn't confirmed, so `LEVEL_BREAKS` stays None
+
+/phase-check, 2026-11-27 (final; ui-reviewer skipped because nothing visible changed):
+
+| Reviewer | Check | Result | Fix |
+|---|---|---|---|
+| injection-guard | Config changes explained; security lines intact | PASS | None. Workflow is the Phase 1 job; CLAUDE.md change is the owner's request, with every Security line kept |
+| injection-guard | Text aimed at an AI, network hosts, data flow, workflow, subagent reports | PASS | None. The stray `.nonexistent` was never committed |
+| code-reviewer | Failure handling | PASS (after fixes) | A bad or empty frame now tries the mirror; frame date checked; old frames deleted only after latest.json is updated; atomic cache writes; a note when the mirror has nothing newer |
+| code-reviewer | Workflow | PASS (after fix) | The job runs only on main |
+| code-reviewer | Readability, unused code | PASS (after fixes) | Comments on test-only and Phase 3 helpers; duplicate function name renamed |
+| geo-qa | Axis order, Mercator rows, corners, encoding, tests | PASS | Added a test that latest.json's corners and size match the PNG |
+| geo-qa | Alignment (no land layer until Phase 2) | PASS | Independent check: inland Puerto Rico, Barbados and the Yucatán are no data |
+| science-reviewer | No guessed thresholds; honest encoding range | PASS | Recorded that the data are clipped at -0.002 and 0.004 |
+| science-reviewer | No tons, density or forecast; 7-day label | PASS | Recorded the SaWS labelling and the coastal-mask clues as UNVERIFIED |
 
 ## Phase 2: map MVP (target Dec 14)
 Status: not started
