@@ -82,7 +82,15 @@ export default function NowView({ latest, monthly }: { latest: Latest; monthly: 
       </div>
 
       <div className="map-wrap" role="region" aria-label="Map of sargassum levels">
-        <SargassumMap frame={frame} onReading={setReading} onStatus={setStatus} onFrameShown={setShownKey} />
+        <SargassumMap
+          frame={frame}
+          onReading={setReading}
+          onStatus={(next) => {
+            setStatus(next);
+            if (next === "error") setPlaying(false); // don't wait forever on a frame that failed
+          }}
+          onFrameShown={setShownKey}
+        />
         {status !== "ready" && (
           <p className="map-status" role="status">
             {status === "loading" ? "Loading the map…" : "The map couldn’t load. Please try again later."}

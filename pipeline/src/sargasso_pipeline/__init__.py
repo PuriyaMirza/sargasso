@@ -85,8 +85,8 @@ def update_monthly(data_dir):
     run's summary page) and tried again on the next run."""
     try:
         monthly.update(data_dir)
-    except (FetchError, ValueError) as err:
-        print(f"::warning title=Monthly map not updated::{err}")
+    except Exception as err:  # noqa: BLE001 - anything here must not block the daily map
+        print(f"::warning title=Monthly map not updated::{type(err).__name__}: {err}")
 
 
 def main(argv=None):

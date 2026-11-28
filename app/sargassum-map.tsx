@@ -59,7 +59,8 @@ export default function SargassumMap({ frame, onReading, onStatus, onFrameShown 
     let mapLoaded = false;
     let request = 0; // newest show() call; older loads are dropped when they finish
     let stopped = false; // set when the component unmounts
-    const cache = new Map<string, Promise<Loaded>>(); // image path -> loaded frame
+    const cache = new Map<string, Promise<Loaded>>(); // image path -> loaded frame, oldest use first
+    const CACHE_LIMIT = 40; // frames kept in memory (each about 1 MB once decoded and colored)
     const { west, south, east, north } = frameRef.current.bounds; // first view
 
     async function start() {
@@ -139,13 +140,23 @@ export default function SargassumMap({ frame, onReading, onStatus, onFrameShown 
 
     function load(spec: FrameSpec): Promise<Loaded> {
       let loaded = cache.get(spec.image);
-      if (!loaded) {
+      if (loaded) {
+        cache.delete(spec.image); // move to the newest end
+        cache.set(spec.image, loaded);
+      } else {
         loaded = loadCodes(`/data/${spec.image}`, spec.width, spec.height).then(async (codes) => ({
           codes,
           url: await coloredImageUrl(codes, spec),
         }));
         loaded.catch(() => cache.delete(spec.image)); // let a later attempt retry
         cache.set(spec.image, loaded);
+        // Drop the least recently used frames, except the one on screen.
+        for (const [image, old] of cache) {
+          if (cache.size <= CACHE_LIMIT) break;
+          if (image === shown?.spec.image || image === spec.image) continue;
+          cache.delete(image);
+          old.then((l) => URL.revokeObjectURL(l.url), () => {});
+        }
       }
       return loaded;
     }

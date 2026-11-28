@@ -130,7 +130,8 @@ def update(data_dir, now=None, get=None, pause=3.0, sleep=time.sleep):
     if read_index(data_dir) is None:
         print("No monthly.json yet; run the --monthly backfill first. Skipping monthly maps.")
         return None
-    return backfill(data_dir, FIRST_MONTH, months_ago(1, now), get=get, pause=pause, sleep=sleep, now=now)
+    return backfill(data_dir, FIRST_MONTH, months_ago(1, now), get=get, pause=pause, sleep=sleep, now=now,
+                    keep_going=True)
 
 
 def read_index(data_dir):
@@ -166,13 +167,37 @@ def new_index(bounds, codes):
     }
 
 
-def backfill(data_dir, first, last, get=None, pause=3.0, sleep=time.sleep, cache_dir=None, now=None):
+def _build_from_any_server(month, get, pause, sleep, cache_dir):
+    """Try each server in turn. Returns (frame, dates), or None only if every
+    server answered and none has frames for the month. Raises FetchError if
+    no server had frames and at least one failed, so a temporary outage is
+    never mistaken for an empty month."""
+    failures = []
+    for server in sources.SERVERS:
+        print(f"{month}: asking {server['base_url']}")
+        try:
+            result = build_month(server, month, get=get, pause=pause, sleep=sleep, cache_dir=cache_dir)
+        except (FetchError, ValueError) as err:
+            print(f"  failed: {err}")
+            failures.append(str(err))
+            continue
+        if result is not None:
+            return result
+        print("  no frames listed for this month")
+    if failures:
+        raise FetchError(f"{month}: no frames found, and a server failed:\n  " + "\n  ".join(failures))
+    return None
+
+
+def backfill(data_dir, first, last, get=None, pause=3.0, sleep=time.sleep, cache_dir=None, now=None,
+             keep_going=False):
     """Build monthly/YYYY-MM.png for every month from first to last.
 
     Months already listed in monthly.json are skipped, so a stopped run can be
-    restarted. The index is rewritten after each month. A month with no frames
-    on either server is reported and skipped. Raises FetchError if both
-    servers fail for a month, leaving every finished month in place.
+    restarted. The index is rewritten after each month. A month that no server
+    has frames for is reported and skipped. If a month fails, this raises
+    FetchError (leaving every finished month in place), unless keep_going is
+    set, as in the daily job: then it warns and moves on to later months.
     """
     get = get or http_get
     data_dir = Path(data_dir)
@@ -185,25 +210,22 @@ def backfill(data_dir, first, last, get=None, pause=3.0, sleep=time.sleep, cache
     for month in months_between(first, last):
         if month in done:
             continue
-        result, failures = None, []
-        for server in sources.SERVERS:
-            print(f"{month}: asking {server['base_url']}")
-            try:
-                result = build_month(server, month, get=get, pause=pause, sleep=sleep, cache_dir=cache_dir)
-                break
-            except (FetchError, ValueError) as err:
-                print(f"  failed: {err}")
-                failures.append(str(err))
+        try:
+            result = _build_from_any_server(month, get, pause, sleep, cache_dir)
+        except (FetchError, ValueError) as err:
+            if not keep_going:
+                raise
+            # The daily job: warn (shown on the run's summary page) and go on
+            # to later months; this month is tried again next run.
+            print(f"::warning title=Monthly map {month} not built::{err}")
+            continue
         if result is None:
-            if len(failures) == len(sources.SERVERS):
-                raise FetchError(f"{month}: every server failed:\n  " + "\n  ".join(failures))
-            print(f"  {month}: no frames in this month; skipped")
+            print(f"  {month}: no server has frames in this month; skipped")
             # Remember long-past empty months (the data has gaps, e.g. late
-            # 2016) so later runs don't ask again. A recent month might still
-            # be filling in, so it is asked about again next time.
+            # 2016) so later runs don't ask again. Only when every server
+            # answered "none"; a recent month might still be filling in.
             if index is not None and month < months_ago(2, now):
-                index.setdefault("empty_months", [])
-                index["empty_months"] = sorted(set(index["empty_months"]) | {month})
+                index["empty_months"] = sorted(set(index.get("empty_months", [])) | {month})
                 write_index(data_dir, index)
             continue
 

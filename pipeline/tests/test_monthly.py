@@ -145,3 +145,44 @@ def test_update_adds_last_month_and_remembers_old_empty_months(tmp_path, monkeyp
     server.requests.clear()
     monthly.update(data_dir, now=now, get=server, pause=0, sleep=lambda s: None)
     assert server.requests == []  # nothing left to ask about
+
+
+class EmptyServer(FakeServer):
+    """Answers every time-list request with 'no times in this range'."""
+
+    def __call__(self, url):
+        self.requests.append(url)
+        raise FetchError(f"HTTP 404 for {url}")
+
+
+def test_an_outage_is_never_recorded_as_an_empty_month(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    good = FakeServer(tmp_path, {"2025-05": [7]})
+    monkeypatch.setattr(sources, "SERVERS", sources.SERVERS[:1])
+    monthly.backfill(data_dir, "2025-05", "2025-05", get=good, pause=0, sleep=lambda s: None)
+
+    # Main server down, mirror says "no frames": not an empty month.
+    monkeypatch.setattr(sources, "SERVERS", sources.SERVERS_ORIGINAL)
+    down, empty = FakeServer(tmp_path, {}, fail=True), EmptyServer(tmp_path, {})
+    def get(url):
+        return (down if sources.SERVERS_ORIGINAL[0]["base_url"] in url else empty)(url)
+    with pytest.raises(FetchError):
+        monthly.backfill(data_dir, "2025-05", "2025-06", get=get, pause=0, sleep=lambda s: None)
+    assert "empty_months" not in monthly.read_index(data_dir)
+
+
+def test_the_daily_update_skips_a_failing_month_and_builds_later_ones(tmp_path, monkeypatch):
+    monkeypatch.setattr(sources, "SERVERS", sources.SERVERS[:1])
+    monkeypatch.setattr(monthly, "FIRST_MONTH", "2025-05")
+    data_dir = tmp_path / "data"
+    server = FakeServer(tmp_path, {"2025-05": [7], "2025-07": [14]})
+    monthly.backfill(data_dir, "2025-05", "2025-05", get=server, pause=0, sleep=lambda s: None)
+
+    def flaky(url):  # June always fails; July works
+        if "2025-06" in url:
+            raise FetchError(f"HTTP 503 for {url} (gave up after 4 tries)")
+        return server(url)
+    now = datetime(2025, 8, 2, tzinfo=timezone.utc)
+    index = monthly.update(data_dir, now=now, get=flaky, pause=0, sleep=lambda s: None)
+    assert [m["month"] for m in index["months"]] == ["2025-05", "2025-07"]
+    assert "empty_months" not in index
