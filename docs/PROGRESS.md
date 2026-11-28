@@ -39,7 +39,7 @@ Done-when checklist:
 - [x] Monthly backfill, June 2016 to October 2026, with polite pacing
 - [x] History view with play, and the almanac grid
 - [ ] Regional sparklines (waits for the levels formula)
-- [ ] Validation gate passes and is written up with screenshots (waits for the formula and USF's 2025 bulletins)
+- [ ] Validation gate passes and is written up with screenshots. June half: passed by eye (DECISIONS.md, 2026-11-28; docs/validation/june-2025-ours.png). October-to-November half: waits for the levels formula
 
 ## Phase 4: coastal risk (target Jan 18, v1 live)
 Status: not started
