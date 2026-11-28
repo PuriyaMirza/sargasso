@@ -149,6 +149,6 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Source: Owner's request in chat, 2026-11-27.
 
 ## 2026-11-28: reviewer's invisible-Unicode scan now runs
-- Decision: reviewer.md gives the exact scan command (with `LC_ALL=C.UTF-8`), applies it to the whole diff including CLAUDE.md and .claude/, and treats a command error as FAIL. reviewer diffs against origin/main instead of local main.
+- Decision: reviewer.md gives the exact scan command (with `LC_ALL=C.UTF-8`), applies it to the whole diff including CLAUDE.md and .claude/, and spells out its result: 0 is clean (exit code 1 is normal for grep), anything else or exit code 2 is FAIL. reviewer diffs against origin/main instead of local main.
 - Why: In this container's default locale, `grep -P` rejects the `\x{...}` range, so the scan silently never ran (first seen on PR #5). The 2026-11-27 trim had also limited the scan to files outside .claude/, but hidden characters there matter most. Local main was stale on PR #5, which made the diff show unrelated files.
 - Source: Owner's request in chat, 2026-11-28.
