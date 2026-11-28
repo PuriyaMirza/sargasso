@@ -85,15 +85,43 @@ a { color: inherit; }
   line-height: 1;
 }
 .now-head .lede { margin: 12px 0 0; max-width: 46ch; color: var(--stone); }
-.date-block { margin-top: 24px; }
-.date-block .date {
+.when .date {
   margin: 4px 0 0;
   font-family: var(--display);
   font-weight: 300;
   font-size: clamp(34px, 4vw, 44px);
   line-height: 1.05;
 }
-.date-block .sub { margin: 4px 0 0; color: var(--stone); font-size: 14px; }
+.when .sub { margin: 4px 0 0; color: var(--stone); font-size: 14px; }
+
+/* Time controls: view buttons, play + slider, and the almanac grid.
+   Paper and stone only; brass stays reserved for the data. */
+.controls { display: grid; gap: 16px; align-content: start; }
+.views { display: flex; border: 1px solid var(--stone); width: fit-content; }
+.views button, .play {
+  min-height: 44px; padding: 0 18px;
+  font: 400 12px/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink); border: 0; cursor: pointer;
+}
+.views button + button { border-left: 1px solid var(--stone); }
+.views button[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
+.views button:disabled { color: var(--stone); cursor: not-allowed; }
+.scrub { display: flex; align-items: center; gap: 16px; }
+.play { border: 1px solid var(--stone); min-width: 88px; }
+.play[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
+.scrub input[type="range"] { flex: 1; min-width: 0; height: 44px; margin: 0; accent-color: var(--paper); cursor: pointer; }
+.controls .hint { margin: 0; color: var(--stone); font-size: 14px; }
+
+.almanac { display: grid; gap: 2px; }
+.almanac-row { display: grid; grid-template-columns: 40px repeat(12, minmax(0, 1fr)); gap: 2px; align-items: center; }
+.almanac-head span { color: var(--stone); font-size: 12px; text-align: center; }
+.almanac-year { color: var(--stone); font-size: 12px; letter-spacing: 0.06em; }
+.almanac button, .almanac-empty { height: 44px; }
+.almanac button {
+  padding: 0; border: 1px solid var(--frame-line); background: transparent; cursor: pointer;
+}
+.almanac button:hover { border-color: var(--stone); }
+.almanac button[aria-pressed="true"] { background: var(--paper); border-color: var(--paper); }
 
 /* The map sits on its own opaque ground, so the column lines never cross it. */
 .map-wrap {
@@ -169,11 +197,13 @@ a { color: inherit; }
 @media (min-width: 1000px) {
   .now {
     grid-template-columns: minmax(300px, 380px) 1fr;
-    grid-template-areas: "head map" "panel map";
+    grid-template-areas: "head map" "when map" "controls map" "panel map";
     column-gap: 48px;
     row-gap: 32px;
   }
   .now-head { grid-area: head; }
+  .when { grid-area: when; }
+  .controls { grid-area: controls; }
   .panel { grid-area: panel; }
   .map-wrap { grid-area: map; position: sticky; top: 24px; height: min(80vh, 760px); }
 }

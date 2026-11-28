@@ -8,7 +8,11 @@ import {
   colorAt,
   colorize,
   decode,
+  dailySpecs,
   formatDataDate,
+  formatFrame,
+  formatMonth,
+  monthlySpecs,
   luminance,
   pixelAt,
   scalePosition,
@@ -74,4 +78,40 @@ test("no data stays transparent and data is opaque", () => {
 test("data dates read as calendar dates", () => {
   assert.equal(formatDataDate("2026-11-26"), "26 November 2026");
   assert.equal(formatDataDate("2027-01-03"), "3 January 2027");
+});
+
+test("months read as calendar months", () => {
+  assert.equal(formatMonth("2025-06"), "June 2025");
+  assert.equal(formatMonth("2016-12"), "December 2016");
+  assert.equal(formatFrame({ key: "2025-06", kind: "monthly" }), "June 2025");
+  assert.equal(formatFrame({ key: "2026-11-26", kind: "daily" }), "26 November 2026");
+});
+
+test("daily frames come from latest.json, oldest first, on the daily grid", () => {
+  const specs = dailySpecs({ ...latest, daily_frames: ["2026-11-27", "2026-11-25", "2026-11-26"] });
+  assert.deepEqual(specs.map((s) => s.key), ["2026-11-25", "2026-11-26", "2026-11-27"]);
+  assert.equal(specs[0].image, "daily/2026-11-25.png");
+  assert.equal(specs[0].width, latest.width);
+  assert.deepEqual(specs[0].bounds, latest.bounds);
+});
+
+test("monthly frames sort by month and keep their own grid", () => {
+  const monthly = {
+    composite: "test",
+    stride: 6,
+    width: 667,
+    height: 458,
+    bounds: { west: -98.045, south: -0.045, east: -37.955, north: 38.03 },
+    encoding: latest.encoding,
+    months: [
+      { month: "2016-07", frames: ["2016-07-07"], data_fraction: 0.4 },
+      { month: "2016-06", frames: ["2016-06-21"], data_fraction: 0.3 },
+    ],
+  };
+  const specs = monthlySpecs(monthly);
+  assert.deepEqual(specs.map((s) => s.key), ["2016-06", "2016-07"]);
+  assert.equal(specs[0].image, "monthly/2016-06.png");
+  assert.equal(specs[0].width, 667);
+  assert.equal(specs[1].dataFraction, 0.4);
+  assert.deepEqual(monthlySpecs(null), []);
 });

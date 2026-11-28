@@ -190,3 +190,25 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Decision: reviewer.md gives the exact scan command (with `LC_ALL=C.UTF-8`), applies it to the whole diff including CLAUDE.md and .claude/, and spells out its result: 0 is clean (exit code 1 is normal for grep), anything else or exit code 2 is FAIL. reviewer diffs against origin/main instead of local main.
 - Why: In this container's default locale, `grep -P` rejects the `\x{...}` range, so the scan silently never ran (first seen on PR #5). The 2026-11-27 trim had also limited the scan to files outside .claude/, but hidden characters there matter most. Local main was stale on PR #5, which made the diff show unrelated files.
 - Source: Owner's request in chat, 2026-11-28.
+
+## 2026-11-28: Phase 3 split: regional charts and validation wait for the levels formula
+- Decision: At the owner's choice, this part of Phase 3 builds the 30-day slider, the monthly backfill, the History view and the almanac grid. The regional sparklines, series.csv and the validation gate wait until USF's AFAI-to-coverage formula is confirmed. A stand-in index ("AFAI above 0") was offered and declined.
+- Why: Any regional number made now would be our own invention, and the validation gate would only test that invention.
+- Source: Owner's answer in chat, 2026-11-28. The owner will upload USF's June, October and November 2025 bulletins for the validation later.
+
+## 2026-11-28: Monthly maps: the mean of four 7-day frames, at stride 6
+- Decision: Each month's map (public/data/monthly/YYYY-MM.png) is the pixel-by-pixel mean of that month's 7-day frames nearest days 7, 14, 21 and 28, at stride 6 (about 10 km), resampled to Mercator rows and encoded like the daily frames. A pixel with no data in all four frames stays no data. monthly.json lists each month's source frames and data fraction. Months with no frames at all (the data's 2016 gap) are skipped and, once more than two months old, remembered in `empty_months` so they aren't asked about again.
+- Why: The mean of weekly composites is a simple, threshold-free picture of the month. It's a display choice, not a measurement; the regional index will be defined with the levels method. Which seven days each 7-day frame covers is still UNVERIFIED, so a month's map covers roughly days 1 to 28.
+- Measured: June 2025 took 17 s (four downloads, 3 s pause before each) and made an 88,053-byte PNG (667 × 458). The full backfill, June 2016 to October 2026, is in BACKFILL_RESULT below.
+- Source: pipeline/src/sargasso_pipeline/monthly.py and pipeline/tests/test_monthly.py.
+
+## 2026-11-28: New months arrive through the daily job, without blocking it
+- Decision: After the daily update, the pipeline adds last month's map if it's missing (four extra downloads, once a month). If that fails, the daily map is still committed and the run shows a GitHub Actions warning ("Monthly map not updated"); the next run tries again.
+- Why: A monthly hiccup shouldn't stop the daily map. The workflow commits only when the pipeline succeeds, so the monthly step reports a warning instead of failing. Making it a separate workflow step would need a .github edit, which this change avoids.
+- Source: pipeline/src/sargasso_pipeline/__init__.py (update_monthly).
+
+## 2026-11-28: Time views on the map page
+- Decision: Three views: Now (latest frame), 30 days (slider and play over the daily frames on the site) and History (slider and play over the monthly maps, plus an almanac grid of years by months). Play waits until each frame is on screen before moving on. A tapped reading stays and follows the frame through time. The almanac grid only shows which months have a map and which one is chosen; it carries no index until the levels method exists.
+- Why: Keeps one map and one legend for every view, and needs no number we can't yet justify.
+- Open: almanac cells are 44 px tall but only about 25 px wide on a 390 px phone (12 months across).
+- Source: app/now-view.tsx, app/sargassum-map.tsx.

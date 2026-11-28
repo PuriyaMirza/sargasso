@@ -27,6 +27,63 @@ export type Latest = {
   daily_frames: string[];
 };
 
+/** The shape of public/data/monthly.json (written by pipeline/monthly.py). */
+export type Monthly = {
+  composite: string;
+  stride: number;
+  width: number;
+  height: number;
+  bounds: { west: number; south: number; east: number; north: number };
+  encoding: Encoding;
+  months: { month: string; frames: string[]; data_fraction: number }[];
+};
+
+/** Everything the map needs to draw one frame and read its pixels. */
+export type FrameSpec = {
+  key: string; // "2026-11-27" for a daily frame, "2025-06" for a month
+  kind: "daily" | "monthly";
+  image: string; // relative to /data/
+  width: number;
+  height: number;
+  bounds: { west: number; south: number; east: number; north: number };
+  encoding: Encoding;
+  dataFraction: number | null; // share of pixels with data, when known
+};
+
+/** The image grid: what pixelAt needs. */
+type Grid = Pick<FrameSpec, "bounds" | "width" | "height">;
+
+/** The latest daily frame, and every daily frame still on the site (oldest first). */
+export function dailySpecs(latest: Latest): FrameSpec[] {
+  return [...latest.daily_frames].sort().map((date) => ({
+    key: date,
+    kind: "daily",
+    image: `daily/${date}.png`,
+    width: latest.width,
+    height: latest.height,
+    bounds: latest.bounds,
+    encoding: latest.encoding,
+    dataFraction: date === latest.data_date ? latest.data_fraction : null,
+  }));
+}
+
+/** One frame per month in monthly.json, oldest first. */
+export function monthlySpecs(monthly: Monthly | null): FrameSpec[] {
+  if (!monthly) return [];
+  return [...monthly.months]
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .map((m) => ({
+      key: m.month,
+      kind: "monthly",
+      image: `monthly/${m.month}.png`,
+      width: monthly.width,
+      height: monthly.height,
+      bounds: monthly.bounds,
+      encoding: monthly.encoding,
+      dataFraction: m.data_fraction,
+    }));
+}
+
 export type Encoding = {
   nodata: number;
   first_code: number;
@@ -48,7 +105,7 @@ export function mercatorY(latDeg: number): number {
  * Columns are evenly spaced in longitude; rows are evenly spaced in Web
  * Mercator, with north at the top (see grid.py's to_mercator_rows).
  */
-export function pixelAt(latest: Latest, lng: number, lat: number): { x: number; y: number } | null {
+export function pixelAt(latest: Grid, lng: number, lat: number): { x: number; y: number } | null {
   const { west, east, south, north } = latest.bounds;
   if (lng < west || lng >= east || lat <= south || lat > north) return null;
   const x = Math.floor(((lng - west) / (east - west)) * latest.width);
@@ -139,10 +196,22 @@ export function luminance([r, g, b]: RGB): number {
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
 
+export const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August",
+  "September", "October", "November", "December"];
+
 /** "2026-11-26" → "26 November 2026" (read as a calendar date, not a local time). */
 export function formatDataDate(isoDate: string): string {
   const [y, m, d] = isoDate.split("-").map(Number);
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August",
-    "September", "October", "November", "December"];
-  return `${d} ${months[m - 1]} ${y}`;
+  return `${d} ${MONTH_NAMES[m - 1]} ${y}`;
+}
+
+/** "2025-06" → "June 2025". */
+export function formatMonth(isoMonth: string): string {
+  const [y, m] = isoMonth.split("-").map(Number);
+  return `${MONTH_NAMES[m - 1]} ${y}`;
+}
+
+/** A frame's date as shown on screen. */
+export function formatFrame(spec: Pick<FrameSpec, "key" | "kind">): string {
+  return spec.kind === "monthly" ? formatMonth(spec.key) : formatDataDate(spec.key);
 }
