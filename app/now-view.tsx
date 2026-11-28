@@ -79,7 +79,7 @@ function ReadingText({ reading, latest }: { reading: Reading | null; latest: Lat
     return <>{place}<p>Land: no reading.</p></>;
   }
   if (reading.kind === "nodata") {
-    return <>{place}<p>No data here in this composite (cloud, or outside the product’s coverage).</p></>;
+    return <>{place}<p>No valid reading here in this composite (for example cloud, or outside the product’s coverage).</p></>;
   }
 
   // No number on a 0–100 scale: it would read like percent cover, and the

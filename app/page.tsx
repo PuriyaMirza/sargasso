@@ -1,4 +1,4 @@
-// The "Now" view: this week's map. latest.json is read when the site is built,
+// The "Now" view: the latest map. latest.json is read when the site is built,
 // so the data date is in the page itself. The daily data job commits new
 // data, and Vercel rebuilds the site each time.
 import { readFileSync } from "node:fs";
