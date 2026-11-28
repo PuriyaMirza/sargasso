@@ -24,7 +24,7 @@ Files under public/data/:
 Encoding: 0 = no data (cloud, land, missing); 1 to 255 = scaled index. MapLibre draws an image as a straight quad between its corners in Web Mercator, so latitude rows must be resampled to Mercator spacing before encoding. Test it.
 
 ## Levels
-- Classes: none, low, moderate, high, plus no data. Breaks come from USF's published method for turning AFAI into sargassum coverage (data-scout finds it; science-reviewer checks it). No guessed thresholds.
+- Classes: none, low, moderate, high, plus no data. Breaks come from USF's published method for turning AFAI into sargassum coverage (main-session research finds it; science-reviewer checks it). No guessed thresholds.
 - On-screen label: "Sargassum level (relative)". Never tons, never "forecast".
 - Validation gate (Phase 3): our June 2025 monthly map shows high levels in the same areas as the USF June 2025 bulletin map, and our regional index falls from October to November 2025 as the bulletin totals did (4.3M to 1.7M metric tons).
 
@@ -43,7 +43,7 @@ Encoding: 0 = no data (cloud, land, missing); 1 to 255 = scaled index. MapLibre 
 
 ### Phase 0: setup (target Nov 30)
 Plan files, subagents, approval gate, Next.js and pipeline skeletons.
-Phase 0 checks, run by data-scout as three parallel tasks:
+Phase 0 checks, run as three parallel research tasks:
 1. ERDDAP: confirm the dataset IDs, axis order, latest timestamp, roughly what time each day a new date appears, and the size of one full-region 7-day frame as .nc at stride 3 and at stride 6.
 2. Mirror: confirm upwell.pfeg.noaa.gov serves the same 7-day data, and note its dataset ID.
 3. Method: find USF's published method for turning AFAI into sargassum coverage (for example Wang and Hu 2016, later USF papers, the SaWS pages). Return the steps and any thresholds with citations.
@@ -51,12 +51,12 @@ Done when: the Vercel preview deploys, pytest passes, the hook test passes, and 
 
 ### Phase 1: data pipeline (target Dec 7)
 Fetch, classify, reproject, encode and write the files; a GitHub Action that runs daily and on manual trigger; mirror fallback; a loud failure when both servers fail, keeping the last good frame.
-Done when: one real frame is committed; pytest covers axis order, Mercator resampling, the encoding round trip and the class breaks on synthetic data; geo-qa passes; measured file sizes are in DECISIONS.md.
+Done when: one real frame is committed; pytest covers axis order, Mercator resampling, the encoding round trip and the class breaks on synthetic data; the geo review passes; measured file sizes are in DECISIONS.md.
 Storage gate: if a daily frame is over 300 KB, or estimated repo growth is over 100 MB a year, stop and propose object storage.
 
 ### Phase 2: map MVP (target Dec 14)
 MapLibre map with the land layer, latest frame, legend, data date, tap readout and footer, in the Almanac style.
-Done when: the preview works on a phone at 390 px; the frame lines up with coastlines at Puerto Rico, Barbados and the Yucatan (geo-qa screenshot check); ui-reviewer passes; first load is under 1 MB excluding map frames.
+Done when: the preview works on a phone at 390 px; the frame lines up with coastlines at Puerto Rico, Barbados and the Yucatan (reviewer's geo check, with screenshots); ui-reviewer passes; first load is under 1 MB excluding map frames.
 
 ### Phase 3: time and history (target Jan 4)
 30-day slider with play; one-off monthly backfill from Jun 2016 to now with polite pacing; history view with play; almanac grid; regional sparklines.

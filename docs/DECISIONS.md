@@ -142,3 +142,8 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Search snippets (not a primary source) say USF's operational products mask "coastal waters 0–30 km from the shore" because of shallow bottoms, suspended sediment and mixed land–water pixels, citing Hu et al. 2016 and Wang and Hu 2020. That matches the bright coastal edges in our frame. Confirm it before using it in the levels method.
 - For the Phase 3 validation: the SaWS page says "we have applied a wider color stretch after January 2025", so bulletin images from before and after that month aren't directly comparable. https://optics.marine.usf.edu/projects/SaWS.html
 - Source: science-reviewer, 2026-11-27.
+
+## 2026-11-27: Review process trimmed (owner's option A)
+- Decision: One `reviewer` agent (sonnet) replaces code-reviewer, geo-qa and injection-guard. science-reviewer moves to sonnet and runs only in Phases 3–4 or when the method or on-screen claims change. ui-reviewer is unchanged. data-scout is removed; research happens in the main session under the same injection rule. /phase-check runs pytest, lint and build first, reruns a failed reviewer once, and puts its table in the PR instead of PROGRESS.md. docs/PLAN.md now uses the new names. reviewer also checks that the approval lock (settings.json ask rules and hook) is intact, and that map frames line up with coastlines.
+- Why: Reviews took too long on every PR. The reviewers overlapped (code-reviewer and injection-guard both checked Actions pinning, permissions and secrets). data-scout's read-only rule wasn't enforced: its Bash tool could write files, and it did (see "A data-scout saved a web page into the repo").
+- Source: Owner's request in chat, 2026-11-27.
