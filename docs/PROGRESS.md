@@ -12,7 +12,7 @@ Done-when checklist:
 - [x] Phase 0 check findings are in docs/DECISIONS.md (levels method still OPEN)
 
 ## Phase 1: data pipeline (target Dec 7)
-Status: in review (PR open on branch phase-1-data-pipeline)
+Status: done (PR #2 merged 2026-11-27)
 
 Done-when checklist:
 - [x] One real frame committed (public/data/daily/2026-11-26.png, 191,817 bytes)
