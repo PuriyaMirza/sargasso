@@ -23,7 +23,13 @@ Done-when checklist:
 - Open: the levels method isn't confirmed, so `LEVEL_BREAKS` stays None
 
 ## Phase 2: map MVP (target Dec 14)
-Status: not started
+Status: done (PR #3 merged 2026-11-28)
+
+Done-when checklist:
+- [x] Preview works on a phone at 390 px (the owner asked to merge, 2026-11-28)
+- [x] Frame lines up with coastlines at Puerto Rico, Barbados and the Yucatán (geo-qa screenshots; now also an automated test)
+- [x] ui-reviewer passes (after fixes)
+- [x] First load under 1 MB excluding map frames (about 710 KB compressed)
 
 ## Phase 3: time and history (target Jan 4)
 Status: not started

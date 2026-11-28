@@ -143,6 +143,44 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - For the Phase 3 validation: the SaWS page says "we have applied a wider color stretch after January 2025", so bulletin images from before and after that month aren't directly comparable. https://optics.marine.usf.edu/projects/SaWS.html
 - Source: science-reviewer, 2026-11-27.
 
+## 2026-11-27: Land layer from Natural Earth 1:10m, clipped once
+- Decision: `npm run land` makes public/data/land.geojson from the world-atlas 2.0.2 package (Natural Earth 1:10m land). It clips to 100–36W, 2S–40N (a little beyond the data, so panning edges still show land), simplifies to 30% of the points (keeping every island), and rounds to 0.001° (about 110 m). Result: 153,570 bytes, or 48,456 compressed.
+- Why: The full-detail clip is 498 KB. At 30%, coastline detail stays far finer than the 6.7 km data pixels, and Barbados, Grand Cayman and Puerto Rico all survive. world-atlas and mapshaper are dev-only tools; nothing from them ships except the GeoJSON.
+- Source: https://github.com/topojson/world-atlas (Natural Earth, public domain)
+
+## 2026-11-27: MapLibre 6.17.0, with its worker served from /maplibre/
+- Decision: Pin maplibre-gl 6.17.0 (released 2026-11-07; newer versions came out within the last two weeks). Before each build, `scripts/copy-maplibre-worker.mjs` copies MapLibre's web worker into public/maplibre/ (gitignored), and the map calls `setWorkerUrl()` to point at it. The map uses no outside tiles or fonts: just a background, the frame and the land layer, so it contacts no new hosts.
+- Why: MapLibre 6 looks for its worker next to its own file, and that file moves when Next.js bundles it.
+- Source: node_modules/maplibre-gl/dist (the worker URL logic in maplibre-gl.mjs)
+
+## 2026-11-27: How the map colors the frame
+- Decision: The browser reads the PNG's exact values (color management off), colors them with a 256-entry lookup table and hands MapLibre the colored copy. The scale is a continuous stretch over the data's own range, -0.002 to 0.004: near ink up to 30%, then dim stone (55%), brass (80%) and bright gold (100%). No data is transparent, so a faint paper hatch on the map's ground shows through; land draws on top of everything except the coastline.
+- Why: Calm ocean should look like the ink ground (docs/PLAN.md), and only higher values should stand out. Each stop is lighter than the one before (tested), so the scale reads in grayscale. These are display stops, not level classes; the legend says the levels are pending.
+- Source: lib/frame.ts, app/sargassum-map.tsx
+
+## 2026-11-27: Reading the data at build time; map view in the address
+- Decision: The page reads latest.json when Vercel builds it, so the data date is in the HTML before any JavaScript runs. The daily data commit triggers a rebuild. The map keeps its view in the address (`#map=zoom/lat/lng`), so views can be shared and screenshotted.
+- Why: Faster first paint and a date that's always visible. MapLibre's built-in hash option needs no extra code.
+- Source: app/page.tsx
+
+## 2026-11-27: Phase 2 first-load size
+- Decision: Accept. Measured compressed transfer on the production build (`next start`): page, scripts, CSS and fonts 375 KB; land 48 KB; MapLibre worker 148 KB; about 710 KB in all, excluding the 187 KB map frame. Under the 1 MB budget. Vercel serves Brotli, which is usually smaller still.
+- Source: Playwright and curl against `next start`, 2026-11-27.
+
+## 2026-11-27: mapshaper runs on demand, not as a dependency
+- Decision: Remove mapshaper from devDependencies; `npm run land` runs the pinned version through `npx --yes mapshaper@0.7.101`.
+- Why: mapshaper pulls in better-sqlite3 and msgpackr-extract, which run install scripts (native builds, possibly downloading prebuilt files from GitHub). As a dependency, those would run on every `npm install` and every Vercel build, for a tool we use once. The lockfile now has no packages with install scripts.
+- Source: injection-guard noted two install-script packages; `npm ls better-sqlite3` traced them to mapshaper.
+
+## 2026-11-27: Wording that doesn't overclaim
+- Decision: The header says "A relative index of floating sargassum…" instead of "Where sargassum is this week". The readout shows the marker on the color scale and the AFAI value, with no 0–100 number. The coastal note says bright near-shore pixels "may be" shallow seafloor, sediment or mixed land–water pixels, and that "this map can't yet tell them apart". The coverage line says "N% of the frame has data in this composite; the rest is cloud, land or outside coverage."
+- Why: A 0–100 number reads like percent cover, and the bottom of the scale isn't "no sargassum". The 7-day window is unverified. The coastal artifact is likely but not confirmed from a primary source. data_fraction counts frame pixels, not sargassum.
+- Source: science-reviewer, 2026-11-27.
+
+## 2026-11-27: Alignment test against the land layer
+- Decision: pipeline/tests/test_alignment.py draws land.geojson onto the committed PNG's grid and checks that (a) pixels fully inside land almost never hold data (at most 0.5%), and (b) shifting the frame 3 pixels in any direction puts clearly more data on land. The daily job runs it before each update.
+- Why: It protects the Puerto Rico, Barbados and Yucatán alignment check automatically. The 249 "data on land" pixels found on 2026-11-26 (0.16%) are lakes and reservoirs that Natural Earth's land layer doesn't cut out: Okeechobee, Pontchartrain, Kentucky Lake, Kerr Lake, Izabal, Guri and Brokopondo. Every shift, even one pixel, makes the overlap worse, so the frame sits within a pixel of the coastline.
+- Source: geo-qa, 2026-11-27.
 ## 2026-11-27: Review process trimmed (owner's option A)
 - Decision: One `reviewer` agent (sonnet) replaces code-reviewer, geo-qa and injection-guard. science-reviewer moves to sonnet and runs only in Phases 3–4 or when the method or on-screen claims change. ui-reviewer is unchanged. data-scout is removed; research happens in the main session under the same injection rule. /phase-check runs pytest, lint and build first, reruns a failed reviewer once, and puts its table in the PR instead of PROGRESS.md. docs/PLAN.md now uses the new names. reviewer also checks that the approval lock (settings.json ask rules and hook) is intact, and that map frames line up with coastlines.
 - Why: Reviews took too long on every PR. The reviewers overlapped (code-reviewer and injection-guard both checked Actions pinning, permissions and secrets). data-scout's read-only rule wasn't enforced: its Bash tool could write files, and it did (see "A data-scout saved a web page into the repo").

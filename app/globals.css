@@ -73,16 +73,110 @@ a { color: inherit; }
 /* No pulse for people who ask for less motion (the script also checks this). */
 @media (prefers-reduced-motion: reduce) { .line i { display: none; } }
 
-/* Placeholder intro */
-.intro { flex: 1; padding-block: 72px 96px; margin-inline: 40px; }
-.intro h1 {
+/* "Now" view. Phone first: header, map, then legend and reading below. */
+.now { flex: 1; display: grid; gap: 24px; align-content: start; padding-block: 32px 56px; margin-inline: 40px; }
+.label { margin: 0; color: var(--stone); }
+
+.now-head h1 {
   margin: 0;
   font-family: var(--display);
   font-weight: 300;
-  font-size: clamp(52px, 6.7vw, 96px);
-  line-height: 0.95;
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1;
 }
-.intro .lede { margin: 24px 0 0; max-width: 44ch; color: var(--stone); }
+.now-head .lede { margin: 12px 0 0; max-width: 46ch; color: var(--stone); }
+.date-block { margin-top: 24px; }
+.date-block .date {
+  margin: 4px 0 0;
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: clamp(34px, 4vw, 44px);
+  line-height: 1.05;
+}
+.date-block .sub { margin: 4px 0 0; color: var(--stone); font-size: 14px; }
+
+/* The map sits on its own opaque ground, so the column lines never cross it. */
+.map-wrap {
+  position: relative;
+  height: min(62svh, 560px);
+  min-height: 320px;
+  background: var(--ink);
+  border: 1px solid var(--frame-line);
+}
+/* More specific than MapLibre's own `.maplibregl-map { position: relative }`. */
+.map-wrap > .map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-status {
+  position: absolute; inset: 0; margin: 0;
+  display: grid; place-items: center; padding: 16px; text-align: center;
+  color: var(--stone); pointer-events: none;
+}
+.map-wrap:has(.maplibregl-canvas:focus-visible) { outline: 1px solid var(--brass); outline-offset: 4px; }
+.maplibregl-canvas:focus-visible { outline: none; }
+
+.panel { display: grid; gap: 28px; align-content: start; }
+.legend-bar, .meter { height: 12px; margin-top: 10px; border: 1px solid var(--frame-line); }
+.legend-ends { display: flex; justify-content: space-between; margin-top: 6px; color: var(--stone); font-size: 14px; }
+.legend-nodata { margin: 12px 0 0; color: var(--stone); font-size: 14px; }
+.swatch-hatch {
+  display: inline-block; width: 22px; height: 12px; margin-right: 8px; vertical-align: -1px;
+  border: 1px solid var(--frame-line);
+  background: repeating-linear-gradient(135deg, rgba(246, 243, 238, 0.16) 0 1px, transparent 1px 6px), var(--ink);
+}
+
+.readout { min-height: 148px; }
+.readout p { margin: 8px 0 0; }
+.readout .readout-hint { color: var(--stone); }
+.readout .coords { font-family: var(--display); font-size: 24px; line-height: 1.2; }
+.readout .afai { color: var(--stone); font-size: 14px; }
+.meter { position: relative; }
+.meter span { position: absolute; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; background: var(--paper); }
+
+.notes p { margin: 0 0 10px; max-width: 52ch; color: var(--stone); font-size: 14px; }
+
+/* Where you tapped: a paper ring (brass is kept for the data). */
+.tap-marker {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--ink), inset 0 0 0 1px var(--ink);
+}
+
+/* MapLibre's controls in the Almanac palette, with 44 px touch targets.
+   Prefixed with .map-wrap so these win over MapLibre's own stylesheet,
+   which loads after this one. */
+.map-wrap .maplibregl-ctrl-group:not(:empty) {
+  background: var(--ink); border: 1px solid var(--stone); border-radius: 0; box-shadow: none;
+}
+.map-wrap .maplibregl-ctrl-group button { width: 44px; height: 44px; }
+.map-wrap .maplibregl-ctrl-group button + button { border-top: 1px solid var(--frame-line); }
+.map-wrap .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+/* Our brass focus ring replaces MapLibre's blue glow on every map button. */
+.map-wrap .maplibregl-ctrl-group button:focus,
+.map-wrap .maplibregl-ctrl-group button:focus:focus-visible,
+.map-wrap .maplibregl-ctrl-attrib-button:focus,
+.map-wrap .maplibregl-ctrl-attrib-button:focus:focus-visible { box-shadow: none; }
+.map-wrap .maplibregl-ctrl button:focus-visible,
+.map-wrap .maplibregl-ctrl-attrib-button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; }
+.map-wrap .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.map-wrap .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact-show {
+  background: rgba(25, 26, 24, 0.9); color: var(--stone); font-size: 11px; border-radius: 0;
+}
+.map-wrap .maplibregl-ctrl-attrib a { color: var(--stone); }
+.map-wrap .maplibregl-ctrl-attrib-button {
+  width: 44px; height: 44px; filter: invert(1); background-color: transparent; background-position: center;
+}
+.map-wrap .maplibregl-ctrl-attrib.maplibregl-compact { min-height: 44px; }
+.map-wrap .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-right: 48px; }
+
+@media (min-width: 1000px) {
+  .now {
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    grid-template-areas: "head map" "panel map";
+    column-gap: 48px;
+    row-gap: 32px;
+  }
+  .now-head { grid-area: head; }
+  .panel { grid-area: panel; }
+  .map-wrap { grid-area: map; position: sticky; top: 24px; height: min(80vh, 760px); }
+}
 
 /* Footer credit, on every page */
 .foot {
@@ -93,6 +187,6 @@ a { color: inherit; }
 .foot p { margin: 0; max-width: 72ch; color: var(--stone); font-size: 14px; line-height: 1.6; }
 
 @media (max-width: 999px) {
-  .intro, .foot { margin-inline: 0; }
-  .intro { padding-block: 48px 72px; }
+  .now, .foot { margin-inline: 0; }
+  .now { padding-block: 24px 40px; }
 }

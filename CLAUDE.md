@@ -43,6 +43,8 @@ Web app (repo root; Node 22, npm):
 - `npm run dev`: local site at http://localhost:3000
 - `npm run lint`: ESLint
 - `npm run build`: production build (what Vercel runs)
+- `npm test`: tests for the browser-side map logic (lib/*.test.ts, Node's built-in runner)
+- `npm run land`: regenerate public/data/land.geojson from Natural Earth (one-off)
 
 Pipeline (`cd pipeline`; Python 3.13, uv):
 - `uv sync`: create .venv and install dependencies
