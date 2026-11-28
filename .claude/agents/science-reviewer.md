@@ -1,8 +1,8 @@
 ---
 name: science-reviewer
-description: Checks the sargassum level method and every user-facing claim against USF and NOAA sources, plus credit and disclaimer wording. Use at the end of Phases 1, 3, 4 and 5 and whenever on-screen text changes.
+description: Use only in Phases 3 and 4, or when the levels method or on-screen claims change.
 tools: Read, Grep, Glob, WebFetch, WebSearch
-model: opus
+model: sonnet
 ---
 You review scientific accuracy and honesty. Don't edit files.
 

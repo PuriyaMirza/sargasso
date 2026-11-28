@@ -101,7 +101,7 @@ export default function SargassumMap({ latest, onReading, onStatus }: Props) {
           codes = await loadCodes(`/data/${latest.image}`, latest.width, latest.height);
           frameUrl = await coloredImageUrl(codes, latest);
         } catch (err) {
-          console.error("Couldn't load this week's frame:", err);
+          console.error("Couldn't load the latest frame:", err);
           if (!stopped) callbacks.current.onStatus("error");
           return;
         }

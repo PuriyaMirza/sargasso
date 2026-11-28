@@ -21,7 +21,7 @@ export default function NowView({ latest }: { latest: Latest }) {
         <SargassumMap latest={latest} onReading={setReading} onStatus={setStatus} />
         {status !== "ready" && (
           <p className="map-status" role="status">
-            {status === "loading" ? "Loading this week’s map…" : "The map couldn’t load. Please try again later."}
+            {status === "loading" ? "Loading the latest map…" : "The map couldn’t load. Please try again later."}
           </p>
         )}
       </div>
@@ -79,7 +79,7 @@ function ReadingText({ reading, latest }: { reading: Reading | null; latest: Lat
     return <>{place}<p>Land: no reading.</p></>;
   }
   if (reading.kind === "nodata") {
-    return <>{place}<p>No data here this week (cloud, or outside the product’s coverage).</p></>;
+    return <>{place}<p>No data here in this composite (cloud, or outside the product’s coverage).</p></>;
   }
 
   // No number on a 0–100 scale: it would read like percent cover, and the

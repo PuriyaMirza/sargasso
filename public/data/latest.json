@@ -1,15 +1,15 @@
 {
-  "data_date": "2026-11-26",
-  "time": "2026-11-26T12:00:00Z",
+  "data_date": "2026-11-27",
+  "time": "2026-11-27T12:00:00Z",
   "composite": "7-day composite; ERDDAP's timestamp date (which days it covers is unverified)",
   "dataset_id": "noaa_aoml_atlantic_oceanwatch_AFAI_7D",
   "server": "https://cwcgom.aoml.noaa.gov/erddap",
   "variable": "AFAI",
   "index": "relative sargassum index derived from AFAI (not tons, not a forecast)",
-  "image": "daily/2026-11-26.png",
+  "image": "daily/2026-11-27.png",
   "width": 1001,
   "height": 687,
-  "data_fraction": 0.3772,
+  "data_fraction": 0.3817,
   "bounds": {
     "west": -98.03,
     "south": -0.030004,
@@ -36,6 +36,7 @@
     "status": "pending: no published method confirmed yet (see docs/DECISIONS.md)"
   },
   "daily_frames": [
-    "2026-11-26"
+    "2026-11-26",
+    "2026-11-27"
   ]
 }
