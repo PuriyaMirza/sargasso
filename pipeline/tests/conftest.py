@@ -6,7 +6,10 @@ import netCDF4
 import numpy as np
 import pytest
 
-from sargasso_pipeline import grid
+from sargasso_pipeline import grid, sources
+
+# Tests narrow sources.SERVERS with monkeypatch; keep the real list at hand.
+sources.SERVERS_ORIGINAL = list(sources.SERVERS)
 
 FRAME_TIME = datetime(2026, 11, 25, 12, tzinfo=timezone.utc)
 

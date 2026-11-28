@@ -32,7 +32,14 @@ Done-when checklist:
 - [x] First load under 1 MB excluding map frames (about 710 KB compressed)
 
 ## Phase 3: time and history (target Jan 4)
-Status: not started
+Status: in progress (part 1 in review on branch phase-3-time-history: 30-day slider, monthly backfill, History view, almanac grid; part 2, the regional charts and validation, waits for the levels formula)
+
+Done-when checklist:
+- [x] 30-day slider with play
+- [x] Monthly backfill, June 2016 to October 2026, with polite pacing
+- [x] History view with play, and the almanac grid
+- [ ] Regional sparklines (waits for the levels formula)
+- [ ] Validation gate passes and is written up with screenshots. June half: passed by eye (DECISIONS.md, 2026-11-28; docs/validation/june-2025-ours.png). October-to-November half: waits for the levels formula
 
 ## Phase 4: coastal risk (target Jan 18, v1 live)
 Status: not started

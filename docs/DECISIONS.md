@@ -190,3 +190,39 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 - Decision: reviewer.md gives the exact scan command (with `LC_ALL=C.UTF-8`), applies it to the whole diff including CLAUDE.md and .claude/, and spells out its result: 0 is clean (exit code 1 is normal for grep), anything else or exit code 2 is FAIL. reviewer diffs against origin/main instead of local main.
 - Why: In this container's default locale, `grep -P` rejects the `\x{...}` range, so the scan silently never ran (first seen on PR #5). The 2026-11-27 trim had also limited the scan to files outside .claude/, but hidden characters there matter most. Local main was stale on PR #5, which made the diff show unrelated files.
 - Source: Owner's request in chat, 2026-11-28.
+
+## 2026-11-28: Phase 3 split: regional charts and validation wait for the levels formula
+- Decision: At the owner's choice, this part of Phase 3 builds the 30-day slider, the monthly backfill, the History view and the almanac grid. The regional sparklines, series.csv and the validation gate wait until USF's AFAI-to-coverage formula is confirmed. A stand-in index ("AFAI above 0") was offered and declined.
+- Why: Any regional number made now would be our own invention, and the validation gate would only test that invention.
+- Source: Owner's answer in chat, 2026-11-28. The owner will upload USF's June, October and November 2025 bulletins for the validation later.
+
+## 2026-11-28: Monthly maps: the mean of four 7-day frames, at stride 6
+- Decision: Each month's map (public/data/monthly/YYYY-MM.png) is the pixel-by-pixel mean of that month's 7-day frames nearest days 7, 14, 21 and 28, at stride 6 (about 10 km), resampled to Mercator rows and encoded like the daily frames. A pixel with no data in all four frames stays no data. monthly.json lists each month's source frames and data fraction. Months with no frames at all (the data's 2016 gap) are skipped and, once more than two months old, remembered in `empty_months` so they aren't asked about again.
+- Why: The mean of weekly composites is a simple, threshold-free picture of the month. It's a display choice, not a measurement; the regional index will be defined with the levels method. Which seven days each 7-day frame covers is still UNVERIFIED, so a month's map covers roughly days 1 to 28.
+- Measured: June 2025 took 17 s (four downloads, 3 s pause before each) and made an 88,053-byte PNG (667 × 458). The full backfill: 125 months, June 2016 to October 2026, 10,446,211 bytes in all (about 84 KB a month, so about 1 MB a year from now on), in about 33 minutes on 2026-11-28, with one connection reset that a retry handled. Seven months (August 2016 to February 2017) have fewer than four frames because of the data's gap. June 2016 was first skipped: ERDDAP answers "no data" when a time range starts before the dataset's first frame (2016-06-18), so that month's request now starts there (DATA_START).
+- Source: pipeline/src/sargasso_pipeline/monthly.py and pipeline/tests/test_monthly.py.
+
+## 2026-11-28: New months arrive through the daily job, without blocking it
+- Decision: After the daily update, the pipeline adds last month's map if it's missing (four extra downloads, once a month). If that fails, the daily map is still committed and the run shows a GitHub Actions warning ("Monthly map not updated"); the next run tries again.
+- Why: A monthly hiccup shouldn't stop the daily map. The workflow commits only when the pipeline succeeds, so the monthly step reports a warning instead of failing. Making it a separate workflow step would need a .github edit, which this change avoids.
+- Source: pipeline/src/sargasso_pipeline/__init__.py (update_monthly).
+
+## 2026-11-28: Time views on the map page
+- Decision: Three views: Now (latest frame), 30 days (slider and play over the daily frames on the site) and History (slider and play over the monthly maps, plus an almanac grid of years by months). Play waits until each frame is on screen before moving on. A tapped reading stays and follows the frame through time. The almanac grid only shows which months have a map and which one is chosen; it carries no index until the levels method exists.
+- Why: Keeps one map and one legend for every view, and needs no number we can't yet justify.
+- Almanac cells are 44 × 44 px at every width. On narrow screens the grid scrolls sideways inside its own box (the page never does), the year column stays pinned, and the chosen month is kept in view, also while playing (ui-reviewer, first run FAIL at about 25 px wide).
+- Focus rings stay brass, as docs/PLAN.md's Design section specifies ("Focus ring: 1 px brass outline, 4 px offset"). ui-reviewer's "brass only in the scale" check flags this each time; PLAN.md decides it, and changing it is a design-direction question for the owner.
+- Monthly maps look dimmer than daily ones: averaging four weeks softens short-lived patches. November 2017, for example, has data in 44% of the frame, but only 0.6% of those pixels are above AFAI 0.
+- Source: app/now-view.tsx, app/sargassum-map.tsx.
+
+## 2026-11-28: USF's 2025 bulletins (June, October, November), for the validation gate
+- Decision: Use the owner's uploaded copies only for comparison; don't commit them or copy their images (docs/PLAN.md). Their regions, as drawn on the maps: 1 Gulf of Mexico, 2 Western Caribbean, 3 Eastern Caribbean, 4 West Atlantic, 5 East Atlantic.
+- Totals (wet biomass, metric tons) — Jun 2025: Gulf 1.1M, W Caribbean 2.4M, E Caribbean 8.3M, W Atlantic 22M, E Atlantic 3.4M, all 33.5M. Oct 2025: <0.02M, 0.13M, 0.7M, 0.36M, 2.9M, all 4.3M. Nov 2025: <0.01M, 0.01M, 0.18M, 0.67M, 0.82M, all 1.71M.
+- For the gate: region 5 extends east of our data's edge (38°W), so "all" includes ocean we don't cover. Regions 1–4 alone also fall from October to November (about 1.2M to 0.9M), but region 4 alone rises (0.36M to 0.67M), so compare totals, as PLAN.md says. The bulletins say their top color means about 0.4% of the ocean surface is covered; they give no AFAI-to-coverage formula, so the levels method stays open.
+- Source: USF Optical Oceanography Lab, "Outlook of 2025 Sargassum blooms", issued July 1, October 31 and December 1, 2025 (files uploaded by the owner, 2026-11-28). Injection check: none found.
+
+## 2026-11-28: Validation gate, June half: our June 2025 map matches USF's (qualitative)
+- Decision: Mark the June half of the Phase 3 validation gate as passed, by eye, with the caveats below. The October-to-November half still waits for the levels formula.
+- Why: Our June 2025 monthly map (docs/validation/june-2025-ours.png) is brightest in the same places as the "Sargassum distribution, June 2025" map in USF's bulletin: a band across the central and eastern Caribbean south of Hispaniola and Puerto Rico, the Lesser Antilles near 60°W, and the tropical Atlantic about 5–12°N east of 50°W. The box northeast of the Bahamas and the northern Gulf are quiet in both. As a rough check (for validation only, never shown on the site): of our brightest 2% of pixels, 44% lie east of 60°W, 28% in the eastern Caribbean (75–60°W), 26% in the western Caribbean (88–75°W) and 12% in the Gulf (98–81°W). That is the same order as USF's June totals (W Atlantic 22M, E Caribbean 8.3M, W Caribbean 2.4M, Gulf 1.1M metric tons).
+- Caveats: some of our bright pixels hug coastlines (Cuba, Florida, Hispaniola), where USF masks; they likely pad our Gulf and western Caribbean shares. Our map is much less vivid than USF's: their top color is about 0.4% of the surface covered, a small AFAI signal, so on our continuous scale the belt reads as scattered bright specks. The longitude bands are rough stand-ins for USF's boxes.
+- Source: USF June 2025 bulletin (owner's upload); our 2025-06 monthly map.

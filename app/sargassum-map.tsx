@@ -1,16 +1,18 @@
 "use client";
 
 // The map: MapLibre with no outside tiles. Layers, bottom to top:
-//   ocean (ink) → no-data hatch → today's frame → land → coastline.
-// The frame is a grayscale "data PNG"; we color it here with the lookup
-// table from lib/frame.ts and hand MapLibre the colored copy.
+//   ocean (ink) → no-data hatch → the chosen frame → land → coastline.
+// A frame is a grayscale "data PNG"; we color it here with the lookup table
+// from lib/frame.ts and hand MapLibre the colored copy. The map is created
+// once; changing the `frame` prop swaps the picture (for the 30-day slider
+// and the History view). Frames already seen are kept, so play is smooth.
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import type { Map as MapLibreMap, Marker } from "maplibre-gl";
+import type { ImageSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useEffect, useRef } from "react";
 
-import { buildLut, colorize, pixelAt, type Latest } from "@/lib/frame";
+import { buildLut, colorize, pixelAt, type FrameSpec } from "@/lib/frame";
 
 export type Reading =
   | { kind: "land"; lng: number; lat: number }
@@ -25,27 +27,41 @@ const FRAME_LINE = "#5b5d58";
 const HATCH_LINE = [0xf6, 0xf3, 0xee, 0.12] as const; // paper at 12%
 
 type Props = {
-  latest: Latest;
+  frame: FrameSpec;
   onReading: (reading: Reading) => void;
   onStatus: (status: MapStatus) => void;
+  /** Called once the chosen frame is on screen, with its key. */
+  onFrameShown?: (key: string) => void;
 };
 
-export default function SargassumMap({ latest, onReading, onStatus }: Props) {
+type Loaded = { codes: Uint8Array; url: string };
+
+export default function SargassumMap({ frame, onReading, onStatus, onFrameShown }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Keep the newest callbacks without re-creating the map when they change.
-  const callbacks = useRef({ onReading, onStatus });
+  // Keep the newest callbacks and frame without re-creating the map when they change.
+  const callbacks = useRef({ onReading, onStatus, onFrameShown });
+  const frameRef = useRef(frame);
   useEffect(() => {
-    callbacks.current = { onReading, onStatus };
+    callbacks.current = { onReading, onStatus, onFrameShown };
   });
+  // Set by the map effect below: shows a frame, and is safe to call any time.
+  const showRef = useRef<(spec: FrameSpec) => void>(() => {});
+  useEffect(() => {
+    frameRef.current = frame;
+    showRef.current(frame);
+  }, [frame]);
 
   useEffect(() => {
     let map: MapLibreMap | undefined;
     let marker: Marker | undefined;
-    let frameUrl: string | undefined;
-    let codes: Uint8Array | undefined; // the frame's raw values, once loaded
-    let frameReady = false;
+    let shown: { spec: FrameSpec; codes: Uint8Array } | undefined; // the frame on screen
+    let lastTap: { lng: number; lat: number } | undefined;
+    let mapLoaded = false;
+    let request = 0; // newest show() call; older loads are dropped when they finish
     let stopped = false; // set when the component unmounts
-    const { west, south, east, north } = latest.bounds;
+    const cache = new Map<string, Promise<Loaded>>(); // image path -> loaded frame, oldest use first
+    const CACHE_LIMIT = 40; // frames kept in memory (each about 1 MB once decoded and colored)
+    const { west, south, east, north } = frameRef.current.bounds; // first view
 
     async function start() {
       const maplibre = await import("maplibre-gl");
@@ -97,39 +113,15 @@ export default function SargassumMap({ latest, onReading, onStatus }: Props) {
           paint: { "line-color": FRAME_LINE, "line-width": 0.75 },
         });
 
-        try {
-          codes = await loadCodes(`/data/${latest.image}`, latest.width, latest.height);
-          frameUrl = await coloredImageUrl(codes, latest);
-        } catch (err) {
-          console.error("Couldn't load the latest frame:", err);
-          if (!stopped) callbacks.current.onStatus("error");
-          return;
-        }
-        if (stopped || !map) return;
-        map.addSource("frame", {
-          type: "image",
-          url: frameUrl,
-          coordinates: [[west, north], [east, north], [east, south], [west, south]],
-        });
-        // Insert the frame under the land, so land always covers it.
-        map.addLayer(
-          {
-            id: "frame",
-            type: "raster",
-            source: "frame",
-            paint: { "raster-resampling": "nearest", "raster-fade-duration": 0 },
-          },
-          "land",
-        );
-        frameReady = true;
-        callbacks.current.onStatus("ready");
+        mapLoaded = true;
+        show(frameRef.current);
       });
 
       // Log every map error. Only show the "couldn't load" message if the
       // frame isn't up yet; a later hiccup shouldn't hide a working map.
       map.on("error", (event) => {
         console.error("Map error:", event.error ?? event);
-        if (!stopped && !frameReady) callbacks.current.onStatus("error");
+        if (!stopped && !shown) callbacks.current.onStatus("error");
       });
 
       // A tap (or click) gives a reading for that spot.
@@ -146,16 +138,84 @@ export default function SargassumMap({ latest, onReading, onStatus }: Props) {
       });
     }
 
+    function load(spec: FrameSpec): Promise<Loaded> {
+      let loaded = cache.get(spec.image);
+      if (loaded) {
+        cache.delete(spec.image); // move to the newest end
+        cache.set(spec.image, loaded);
+      } else {
+        loaded = loadCodes(`/data/${spec.image}`, spec.width, spec.height).then(async (codes) => ({
+          codes,
+          url: await coloredImageUrl(codes, spec),
+        }));
+        loaded.catch(() => cache.delete(spec.image)); // let a later attempt retry
+        cache.set(spec.image, loaded);
+        // Drop the least recently used frames, except the one on screen.
+        for (const [image, old] of cache) {
+          if (cache.size <= CACHE_LIMIT) break;
+          if (image === shown?.spec.image || image === spec.image) continue;
+          cache.delete(image);
+          old.then((l) => URL.revokeObjectURL(l.url), () => {});
+        }
+      }
+      return loaded;
+    }
+
+    // Put a frame on the map. Fast slider moves call this many times; only
+    // the newest call's frame is drawn.
+    async function show(spec: FrameSpec) {
+      if (!map || !mapLoaded) return; // the load handler calls show() again
+      const mine = ++request;
+      let loaded: Loaded;
+      try {
+        loaded = await load(spec);
+      } catch (err) {
+        console.error(`Couldn't load the frame ${spec.key}:`, err);
+        if (!stopped && mine === request) callbacks.current.onStatus("error");
+        return;
+      }
+      if (stopped || !map || mine !== request) return;
+      const b = spec.bounds;
+      const coordinates: [[number, number], [number, number], [number, number], [number, number]] = [
+        [b.west, b.north], [b.east, b.north], [b.east, b.south], [b.west, b.south],
+      ];
+      const source = map.getSource("frame") as ImageSource | undefined;
+      if (source) {
+        source.updateImage({ url: loaded.url, coordinates });
+      } else {
+        map.addSource("frame", { type: "image", url: loaded.url, coordinates });
+        // Insert the frame under the land, so land always covers it.
+        map.addLayer(
+          {
+            id: "frame",
+            type: "raster",
+            source: "frame",
+            paint: { "raster-resampling": "nearest", "raster-fade-duration": 0 },
+          },
+          "land",
+        );
+      }
+      shown = { spec, codes: loaded.codes };
+      callbacks.current.onStatus("ready");
+      callbacks.current.onFrameShown?.(spec.key);
+      // Keep the reading in step with the frame: re-read the last tapped spot.
+      if (lastTap) read(lastTap.lng, lastTap.lat, map.project([lastTap.lng, lastTap.lat]));
+    }
+    showRef.current = (spec) => void show(spec);
+
     function read(lng: number, lat: number, point: { x: number; y: number }) {
-      // Ignore taps until the frame has loaded, so we never say "no data" by mistake.
-      if (!map || !marker || !codes || !frameReady) return;
+      // Ignore taps until a frame has loaded, so we never say "no data" by mistake.
+      if (!map || !marker || !shown) return;
+      lastTap = { lng, lat };
       marker.setLngLat([lng, lat]).addTo(map);
+      const { spec, codes } = shown;
       const onLand = map.getLayer("land") && map.queryRenderedFeatures([point.x, point.y], { layers: ["land"] }).length > 0;
-      const pixel = pixelAt(latest, lng, lat);
+      const pixel = pixelAt(spec, lng, lat);
+      const code = pixel ? codes[pixel.y * spec.width + pixel.x] : 0;
       let reading: Reading;
       if (onLand) reading = { kind: "land", lng, lat };
-      else if (!pixel || codes[pixel.y * latest.width + pixel.x] === 0) reading = { kind: "nodata", lng, lat };
-      else reading = { kind: "value", lng, lat, code: codes[pixel.y * latest.width + pixel.x] };
+      else if (code === spec.encoding.nodata) reading = { kind: "nodata", lng, lat };
+      else reading = { kind: "value", lng, lat, code };
       callbacks.current.onReading(reading);
     }
 
@@ -166,11 +226,12 @@ export default function SargassumMap({ latest, onReading, onStatus }: Props) {
 
     return () => {
       stopped = true;
+      showRef.current = () => {};
       marker?.remove();
       map?.remove();
-      if (frameUrl) URL.revokeObjectURL(frameUrl);
+      for (const loaded of cache.values()) loaded.then((l) => URL.revokeObjectURL(l.url), () => {});
     };
-  }, [latest]);
+  }, []);
 
   return <div ref={containerRef} className="map" />;
 }
@@ -185,7 +246,7 @@ async function loadCodes(url: string, width: number, height: number): Promise<Ui
     premultiplyAlpha: "none",
   });
   if (bitmap.width !== width || bitmap.height !== height) {
-    throw new Error("The image size doesn't match latest.json");
+    throw new Error(`The image size doesn't match its index file (${url})`);
   }
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -200,14 +261,14 @@ async function loadCodes(url: string, width: number, height: number): Promise<Ui
 }
 
 /** Color the codes with the level scale and return a URL MapLibre can load. */
-async function coloredImageUrl(codes: Uint8Array, latest: Latest): Promise<string> {
+async function coloredImageUrl(codes: Uint8Array, spec: FrameSpec): Promise<string> {
   const canvas = document.createElement("canvas");
-  canvas.width = latest.width;
-  canvas.height = latest.height;
+  canvas.width = spec.width;
+  canvas.height = spec.height;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("No 2D canvas");
-  const pixels = colorize(codes, buildLut(latest.encoding));
-  context.putImageData(new ImageData(new Uint8ClampedArray(pixels), latest.width, latest.height), 0, 0);
+  const pixels = colorize(codes, buildLut(spec.encoding));
+  context.putImageData(new ImageData(new Uint8ClampedArray(pixels), spec.width, spec.height), 0, 0);
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("Couldn't make the colored image");
   return URL.createObjectURL(blob);
