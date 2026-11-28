@@ -5,7 +5,7 @@
 // MapLibre is large, so the map code loads after the page has appeared.
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   dailySpecs,
@@ -166,7 +166,7 @@ export default function NowView({ latest, monthly }: { latest: Latest; monthly: 
           {frame.dataFraction !== null && (
             <p>
               {Math.round(frame.dataFraction * 100)}% of the frame has data
-              {isMonth ? " this month" : " in this composite"}; the rest is cloud, land or outside
+              {isMonth ? " in this monthly average" : " in this composite"}; the rest is cloud, land or outside
               coverage.
             </p>
           )}
@@ -214,8 +214,22 @@ function Almanac({
 }) {
   const byKey = new Map(months.map((m, i) => [m.key, i]));
   const years = [...new Set(months.map((m) => m.key.slice(0, 4)))];
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // On narrow screens the grid scrolls sideways: keep the chosen month in
+  // view (for example while playing). Only the grid scrolls, never the page.
+  useEffect(() => {
+    const box = boxRef.current;
+    const cell = box?.querySelector<HTMLElement>('button[aria-pressed="true"]');
+    if (!box || !cell) return;
+    const pinned = 46; // the sticky year column
+    const left = cell.offsetLeft - box.scrollLeft;
+    if (left < pinned) box.scrollLeft = cell.offsetLeft - pinned;
+    else if (left + cell.offsetWidth > box.clientWidth) box.scrollLeft = cell.offsetLeft + cell.offsetWidth - box.clientWidth;
+  }, [selected]);
+
   return (
-    <div className="almanac" role="group" aria-label="Pick a month">
+    <div className="almanac" role="group" aria-label="Pick a month" ref={boxRef}>
       <div className="almanac-row almanac-head" aria-hidden="true">
         <span />
         {MONTH_NAMES.map((name) => (

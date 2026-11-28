@@ -210,5 +210,13 @@ Newest last. Each entry: date, decision, why, source. UNVERIFIED marks anything 
 ## 2026-11-28: Time views on the map page
 - Decision: Three views: Now (latest frame), 30 days (slider and play over the daily frames on the site) and History (slider and play over the monthly maps, plus an almanac grid of years by months). Play waits until each frame is on screen before moving on. A tapped reading stays and follows the frame through time. The almanac grid only shows which months have a map and which one is chosen; it carries no index until the levels method exists.
 - Why: Keeps one map and one legend for every view, and needs no number we can't yet justify.
-- Open: almanac cells are 44 px tall but only about 25 px wide on a 390 px phone (12 months across).
+- Almanac cells are 44 × 44 px at every width. On narrow screens the grid scrolls sideways inside its own box (the page never does), the year column stays pinned, and the chosen month is kept in view, also while playing (ui-reviewer, first run FAIL at about 25 px wide).
+- Focus rings stay brass, as docs/PLAN.md's Design section specifies ("Focus ring: 1 px brass outline, 4 px offset"). ui-reviewer's "brass only in the scale" check flags this each time; PLAN.md decides it, and changing it is a design-direction question for the owner.
+- Monthly maps look dimmer than daily ones: averaging four weeks softens short-lived patches. November 2017, for example, has data in 44% of the frame, but only 0.6% of those pixels are above AFAI 0.
 - Source: app/now-view.tsx, app/sargassum-map.tsx.
+
+## 2026-11-28: USF's 2025 bulletins (June, October, November), for the validation gate
+- Decision: Use the owner's uploaded copies only for comparison; don't commit them or copy their images (docs/PLAN.md). Their regions, as drawn on the maps: 1 Gulf of Mexico, 2 Western Caribbean, 3 Eastern Caribbean, 4 West Atlantic, 5 East Atlantic.
+- Totals (wet biomass, metric tons) — Jun 2025: Gulf 1.1M, W Caribbean 2.4M, E Caribbean 8.3M, W Atlantic 22M, E Atlantic 3.4M, all 33.5M. Oct 2025: <0.02M, 0.13M, 0.7M, 0.36M, 2.9M, all 4.3M. Nov 2025: <0.01M, 0.01M, 0.18M, 0.67M, 0.82M, all 1.71M.
+- For the gate: region 5 extends east of our data's edge (38°W), so "all" includes ocean we don't cover. Regions 1–4 alone also fall from October to November (about 1.2M to 0.9M), but region 4 alone rises (0.36M to 0.67M), so compare totals, as PLAN.md says. The bulletins say their top color means about 0.4% of the ocean surface is covered; they give no AFAI-to-coverage formula, so the levels method stays open.
+- Source: USF Optical Oceanography Lab, "Outlook of 2025 Sargassum blooms", issued July 1, October 31 and December 1, 2025 (files uploaded by the owner, 2026-11-28). Injection check: none found.

@@ -112,16 +112,22 @@ a { color: inherit; }
 .scrub input[type="range"] { flex: 1; min-width: 0; height: 44px; margin: 0; accent-color: var(--paper); cursor: pointer; }
 .controls .hint { margin: 0; color: var(--stone); font-size: 14px; }
 
-.almanac { display: grid; gap: 2px; }
-.almanac-row { display: grid; grid-template-columns: 40px repeat(12, minmax(0, 1fr)); gap: 2px; align-items: center; }
+/* 44 px cells at every width; on narrow screens the grid scrolls sideways
+   inside its own box (the page itself never does), with the years pinned. */
+.almanac { display: grid; gap: 2px; overflow-x: auto; padding: 4px 0 6px; }
+.almanac-row { display: grid; grid-template-columns: 44px repeat(12, minmax(44px, 1fr)); gap: 2px; align-items: center; }
 .almanac-head span { color: var(--stone); font-size: 12px; text-align: center; }
-.almanac-year { color: var(--stone); font-size: 12px; letter-spacing: 0.06em; }
+.almanac-year, .almanac-head span:first-child {
+  position: sticky; left: 0; z-index: 1; background: var(--ink);
+  color: var(--stone); font-size: 12px; letter-spacing: 0.06em; line-height: 44px;
+}
 .almanac button, .almanac-empty { height: 44px; }
 .almanac button {
   padding: 0; border: 1px solid var(--frame-line); background: transparent; cursor: pointer;
 }
 .almanac button:hover { border-color: var(--stone); }
 .almanac button[aria-pressed="true"] { background: var(--paper); border-color: var(--paper); }
+.almanac button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; position: relative; z-index: 2; }
 
 /* The map sits on its own opaque ground, so the column lines never cross it. */
 .map-wrap {
