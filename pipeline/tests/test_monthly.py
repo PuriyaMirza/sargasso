@@ -55,7 +55,7 @@ class FakeServer:
         if self.fail:
             raise FetchError(f"HTTP 503 for {url} (gave up after 4 tries)")
         if ".csv?" in url:
-            month = next((m for m in self.days_by_month if f"{m}-01T00" in url), None)
+            month = next((m for m in self.days_by_month if f"%28{m}-" in url), None)
             days = self.days_by_month.get(month, [])
             if not days:
                 raise FetchError(f"HTTP 404 for {url}")
@@ -186,3 +186,15 @@ def test_the_daily_update_skips_a_failing_month_and_builds_later_ones(tmp_path, 
     index = monthly.update(data_dir, now=now, get=flaky, pause=0, sleep=lambda s: None)
     assert [m["month"] for m in index["months"]] == ["2025-05", "2025-07"]
     assert "empty_months" not in index
+
+
+def test_june_2016_asks_from_the_first_frame_not_june_1():
+    asked = []
+    def get(url):
+        asked.append(url)
+        return b"time\nUTC\n2016-06-18T12:00:00Z\n2016-06-25T12:00:00Z\n"
+    times = monthly.month_times(sources.SERVERS[0], "2016-06", get=get)
+    assert "2016-06-18T12" in asked[0] and "2016-06-01T00" not in asked[0]
+    assert [t.day for t in times] == [18, 25]
+    monthly.month_times(sources.SERVERS[0], "2016-07", get=get)
+    assert "2016-07-01T00" in asked[1]

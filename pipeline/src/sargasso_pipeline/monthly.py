@@ -26,7 +26,10 @@ from .output import _replace_atomically
 
 MONTHLY_STRIDE = 6  # about 10 km per pixel (docs/PLAN.md)
 TARGET_DAYS = (7, 14, 21, 28)  # roughly one 7-day frame per week of the month
-FIRST_MONTH = "2016-06"  # the dataset starts on 2016-06-18
+FIRST_MONTH = "2016-06"
+# The dataset's first frame. ERDDAP answers "no data" if a time range starts
+# before it, so June 2016's request starts here instead of on June 1.
+DATA_START = "2016-06-18T12:00:00Z"
 
 
 def parse_month(text):
@@ -50,7 +53,8 @@ def month_times(server, month, get=http_get):
     """The frame times a server lists for a month, or [] if it has none."""
     year, mon = parse_month(month)
     last_day = calendar.monthrange(year, mon)[1]
-    query = f"time[({year:04d}-{mon:02d}-01T00:00:00Z):1:({year:04d}-{mon:02d}-{last_day:02d}T23:59:59Z)]"
+    start = max(f"{year:04d}-{mon:02d}-01T00:00:00Z", DATA_START)  # ISO times sort as text
+    query = f"time[({start}):1:({year:04d}-{mon:02d}-{last_day:02d}T23:59:59Z)]"
     try:
         text = get(griddap_url(server, "csv", query)).decode("utf-8", errors="replace")
     except FetchError as err:
